@@ -10,6 +10,13 @@ extern "system" {
     /// Official documentation: [kernel32.GetLastError](https://docs.microsoft.com/en-us/windows/win32/api/errhandlingapi/nf-errhandlingapi-getlasterror).
     pub(crate) fn GetLastError() -> crate::error::Status;
 
+    /// Official documentation: [kernel32.OpenProcess](https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-openprocess).
+    pub(crate) fn OpenProcess(
+        access_modes: crate::process::AccessModes,
+        inherit_handles: crate::types::Boolean,
+        id: u32
+    ) -> Option<crate::object::Handle>;
+
     /// Official documentation: [kernel32.TerminateProcess](https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-terminateprocess).
     pub(crate) fn TerminateProcess(
         process: crate::object::Handle,

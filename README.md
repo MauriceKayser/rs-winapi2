@@ -43,6 +43,15 @@ crate user prior to any `winapi2` usage:
 
 ```rust
 fn main() {
+    #[cfg(target_arch = "x86")]
+    unsafe {
+        winapi2::SYSCALL_IDS = Some(winapi2::SyscallIds {
+            terminate_process: 0x0001,
+            // .. set all the system specific system call ids.
+        });
+    }
+
+    #[cfg(target_arch = "x86_64")]
     unsafe {
         winapi2::SYSCALL_IDS = Some(winapi2::SyscallIds {
             terminate_process: 0x0001,

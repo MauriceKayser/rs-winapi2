@@ -4,6 +4,7 @@
 #[allow(missing_docs)]
 pub struct Ids {
     pub close: u16,
+    pub open_process: u16,
     pub terminate_process: u16
 }
 
@@ -33,7 +34,7 @@ macro_rules! syscall {
     ($id:ident, $($input:tt)*) => {{
         let index = match IDS {
             Some(ref ids) => ids.$id,
-            None => return crate::error::NtStatusValue::InvalidSystemService.into()
+            None => return Some(crate::error::NtStatusValue::InvalidSystemService.into())
         } as usize;
 
         let result: u32;
@@ -47,7 +48,8 @@ macro_rules! syscall {
             "intel", "volatile"
         );
 
-        *(&result as *const _ as *const crate::error::NtStatus)
+        if result == 0 { None }
+        else { Some(crate::error::NtStatus::from(core::num::NonZeroU32::new_unchecked(result))) }
     }};
 }
 
@@ -56,10 +58,24 @@ macro_rules! syscall {
 #[inline(always)]
 pub(crate) unsafe fn NtClose(
     object: crate::object::Handle
-) -> crate::error::NtStatus {
+) -> Option<crate::error::NtStatus> {
     let object = *(&object as *const _ as *const isize);
 
     syscall!(close, object)
+}
+
+/// Official documentation: [ntdll.NtOpenProcess](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-ntopenprocess).
+#[allow(non_snake_case)]
+#[inline(always)]
+pub(crate) unsafe fn NtOpenProcess(
+    handle: &mut Option<crate::object::Handle>,
+    access_modes: crate::process::AccessModes,
+    attributes: &crate::object::Attributes,
+    client_id: &crate::process::ClientId
+) -> Option<crate::error::NtStatus> {
+    let access_modes = *(&access_modes as *const _ as *const u32);
+
+    syscall!(open_process, handle, access_modes, attributes, client_id)
 }
 
 /// Official documentation: [ntdll.NtTerminateProcess](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-zwterminateprocess).
@@ -68,7 +84,7 @@ pub(crate) unsafe fn NtClose(
 pub(crate) unsafe fn NtTerminateProcess(
     process: crate::object::Handle,
     exit_code: u32
-) -> crate::error::NtStatus {
+) -> Option<crate::error::NtStatus> {
     let process = *(&process as *const _ as *const isize);
 
     syscall!(terminate_process, process, exit_code)

@@ -1,0 +1,15 @@
+//! All object security related Windows types.
+
+// TODO: Implement.
+/// Official documentation: [SECURITY_DESCRIPTOR struct](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_security_descriptor).
+#[repr(C)]
+pub struct Descriptor {
+    _1: u8
+}
+
+// TODO: Implement.
+/// Official documentation: [SECURITY_QUALITY_OF_SERVICE struct](https://docs.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-security_quality_of_service).
+#[repr(C)]
+pub struct QualityOfService {
+    _1: u8
+}

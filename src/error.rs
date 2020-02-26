@@ -12,24 +12,23 @@ pub enum Error {
 ///
 /// The value `STATUS_SUCCESS = 0` is encoded through the value `Ok(())` of the type
 /// `Result<(), NtStatus>` throughout the whole crate.
-#[derive(Clone, Copy)]
-#[repr(C)]
-pub struct NtStatus(u32);
+#[derive(Clone, Copy, Debug)]
+#[repr(transparent)]
+pub struct NtStatus(core::num::NonZeroU32);
 
 impl NtStatus {
     // TODO: Remove once traits can have const fns (https://github.com/rust-lang/rfcs/pull/2632).
-    /// `const` implementation of `core::convert::Into<u32>`.
-    pub const fn into(self) -> u32 {
-        self.0
+    /// `const` implementation of `core::convert::From<core::num::NonZeroU32>`.
+    #[inline(always)]
+    pub(crate) const fn from(value: core::num::NonZeroU32) -> Self {
+        Self(value)
     }
 
-    /// Returns `Ok` if `value` is `true`, and `Err(value)` otherwise.
-    pub(crate) fn result_from_nt_status(value: NtStatus) -> Result<(), Self> {
-        if value.0 == 0 {
-            Ok(())
-        } else {
-            Err(value)
-        }
+    // TODO: Remove once traits can have const fns (https://github.com/rust-lang/rfcs/pull/2632).
+    /// `const` implementation of `core::convert::Into<u32>`.
+    #[inline(always)]
+    pub const fn into(self) -> u32 {
+        self.0.get()
     }
 }
 
@@ -1827,7 +1826,7 @@ pub enum NtStatusValue {
 
 impl core::convert::Into<NtStatus> for NtStatusValue {
     fn into(self) -> NtStatus {
-        NtStatus(self as u32)
+        unsafe { NtStatus(core::num::NonZeroU32::new_unchecked(self as u32)) }
     }
 }
 
@@ -1835,9 +1834,9 @@ impl core::convert::Into<NtStatus> for NtStatusValue {
 ///
 /// The value `ERROR_SUCCESS = 0` is encoded through the value `Ok(())` of the type
 /// `Result<(), Status>` throughout the whole crate.
-#[derive(Clone, Copy)]
-#[repr(C)]
-pub struct Status(u32);
+#[derive(Clone, Copy, Debug)]
+#[repr(transparent)]
+pub struct Status(core::num::NonZeroU32);
 
 impl Status {
     /// Returns `Ok` if `value` is `true`, and `Err(GetLastError())` otherwise.
@@ -4604,6 +4603,6 @@ pub enum StatusValue {
 
 impl core::convert::Into<Status> for StatusValue {
     fn into(self) -> Status {
-        Status(self as u32)
+        unsafe { Status(core::num::NonZeroU32::new_unchecked(self as u32)) }
     }
 }

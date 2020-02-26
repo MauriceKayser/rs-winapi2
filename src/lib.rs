@@ -43,6 +43,15 @@
 //!
 //! ```ignore
 //! fn main() {
+//!     #[cfg(target_arch = "x86")]
+//!     unsafe {
+//!         winapi2::SYSCALL_IDS = Some(winapi2::SyscallIds {
+//!             terminate_process: 0x0001,
+//!             // .. set all the system specific system call ids.
+//!         });
+//!     }
+//!
+//!     #[cfg(target_arch = "x86_64")]
 //!     unsafe {
 //!         winapi2::SYSCALL_IDS = Some(winapi2::SyscallIds {
 //!             terminate_process: 0x0001,
@@ -68,8 +77,10 @@
 
 pub(crate) mod dll;
 pub        mod error;
-pub(crate) mod object;
+pub        mod file;
+pub        mod object;
 pub        mod process;
+pub        mod string;
 pub(crate) mod types;
 
 // Export types.
