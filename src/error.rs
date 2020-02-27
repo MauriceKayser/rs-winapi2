@@ -18,13 +18,6 @@ pub struct NtStatus(core::num::NonZeroU32);
 
 impl NtStatus {
     // TODO: Remove once traits can have const fns (https://github.com/rust-lang/rfcs/pull/2632).
-    /// `const` implementation of `core::convert::From<core::num::NonZeroU32>`.
-    #[inline(always)]
-    pub(crate) const fn from(value: core::num::NonZeroU32) -> Self {
-        Self(value)
-    }
-
-    // TODO: Remove once traits can have const fns (https://github.com/rust-lang/rfcs/pull/2632).
     /// `const` implementation of `core::convert::Into<u32>`.
     #[inline(always)]
     pub const fn into(self) -> u32 {

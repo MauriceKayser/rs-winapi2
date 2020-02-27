@@ -48,8 +48,7 @@ macro_rules! syscall {
             "intel", "volatile"
         );
 
-        if result == 0 { None }
-        else { Some(crate::error::NtStatus::from(core::num::NonZeroU32::new_unchecked(result))) }
+        *(&result as *const _ as *const Option<crate::error::NtStatus>)
     }};
 }
 

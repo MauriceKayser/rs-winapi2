@@ -70,14 +70,19 @@
 //! the application if no exception handlers are set up!
 
 #![deny(missing_docs)]
-#![feature(asm)]
+#![feature(asm, bool_to_option)]
 #![no_std]
+
+// External crates.
+
+extern crate alloc;
 
 // All modules.
 
 pub(crate) mod dll;
 pub        mod error;
 pub        mod file;
+pub        mod heap;
 pub        mod object;
 pub        mod process;
 pub        mod string;
@@ -85,6 +90,8 @@ pub(crate) mod types;
 
 // Export types.
 
+#[cfg(not(winapi = "syscall"))]
+pub use heap::Heap;
 pub use process::Process;
 pub use dll::syscall::{
     Ids as SyscallIds,

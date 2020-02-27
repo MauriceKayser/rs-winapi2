@@ -20,4 +20,24 @@ extern "system" {
         process: crate::object::Handle,
         exit_code: u32
     ) -> Option<crate::error::NtStatus>;
+
+    /// Official documentation: [ntdll.RtlAllocateHeap](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlallocateheap).
+    pub(crate) fn RtlAllocateHeap(
+        heap: crate::heap::SystemHeapHandle,
+        flags: crate::heap::SystemHeapFlags,
+        size: usize
+    ) -> *mut u8;
+
+    /// Official documentation: [ntdll.RtlFreeHeap](https://docs.microsoft.com/en-us/windows/win32/devnotes/rtlfreeheap).
+    pub(crate) fn RtlFreeHeap(
+        heap: crate::heap::SystemHeapHandle,
+        flags: crate::heap::SystemHeapFlags,
+        buffer: *mut u8
+    ) -> crate::types::Boolean;
+
+    /// Official documentation: [kernel32.GetProcessHeaps](https://docs.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-getprocessheaps).
+    pub(crate) fn RtlGetProcessHeaps(
+        buffer_count: u32,
+        buffer: *mut crate::heap::SystemHeapHandle
+    ) -> u32;
 }
