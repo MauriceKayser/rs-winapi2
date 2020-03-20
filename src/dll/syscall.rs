@@ -5,6 +5,7 @@
 pub struct Ids {
     pub close: u16,
     pub open_process: u16,
+    pub query_information_process: u16,
     pub terminate_process: u16
 }
 
@@ -12,26 +13,43 @@ pub struct Ids {
 pub static mut IDS: Option<Ids> = None;
 
 // TODO: Add x86 assembly shell code variant.
-// TODO: Handle more than 4 parameters.
+// TODO: Handle more than 5 parameters (if necessary).
 // TODO: Handle WoW64?
 #[cfg(target_arch = "x86_64")]
 macro_rules! syscall {
     ($id:ident) => {
-        syscall!($id,)
+        syscall!(#1 $id)
     };
     ($id:ident, $p1:ident) => {
-        syscall!($id, "{rcx}"($p1))
+        syscall!(#1 $id, "{rcx}"($p1))
     };
     ($id:ident, $p1:ident, $p2:ident) => {
-        syscall!($id, "{rcx}"($p1), "{rdx}"($p2))
+        syscall!(#1 $id, "{rcx}"($p1), "{rdx}"($p2))
     };
     ($id:ident, $p1:ident, $p2:ident, $p3:ident) => {
-        syscall!($id, "{rcx}"($p1), "{rdx}"($p2), "{r8}"($p3))
+        syscall!(#1 $id, "{rcx}"($p1), "{rdx}"($p2), "{r8}"($p3))
     };
     ($id:ident, $p1:ident, $p2:ident, $p3:ident, $p4:ident) => {
-        syscall!($id, "{rcx}"($p1), "{rdx}"($p2), "{r8}"($p3), "{r9}"($p4))
+        syscall!(#1 $id, "{rcx}"($p1), "{rdx}"($p2), "{r8}"($p3), "{r9}"($p4))
     };
-    ($id:ident, $($input:tt)*) => {{
+    (#1 $id:ident, $($input:tt)*) => {
+        syscall!(#2 $id, "
+            sub rsp, 0x20
+            mov r10, rcx
+            syscall
+            add rsp, 0x20
+        ", $($input)*)
+    };
+    ($id:ident, $p1:ident, $p2:ident, $p3:ident, $p4:ident, $p5:ident) => {
+        syscall!(#2 $id, "
+            sub rsp, 0x30
+            mov [rsp + 0x28], $6
+            mov r10, rcx
+            syscall
+            add rsp, 0x30
+        ", "{rcx}"($p1), "{rdx}"($p2), "{r8}"($p3), "{r9}"($p4), "rn"($p5))
+    };
+    (#2 $id:ident, $command:expr, $($input:tt)*) => {{
         let index = match IDS {
             Some(ref ids) => ids.$id,
             None => return Some(crate::error::NtStatusValue::InvalidSystemService.into())
@@ -39,9 +57,7 @@ macro_rules! syscall {
 
         let result: u32;
         asm!(
-            "   mov r10, rcx
-                syscall
-            " :
+            $command :
             "={eax}"(result) :
             "{eax}"(index), $($input)* :
             "r10" :
@@ -67,7 +83,7 @@ pub(crate) unsafe fn NtClose(
 #[allow(non_snake_case)]
 #[inline(always)]
 pub(crate) unsafe fn NtOpenProcess(
-    handle: &mut Option<crate::object::Handle>,
+    handle: *mut Option<crate::object::Handle>,
     access_modes: crate::process::AccessModes,
     attributes: &crate::object::Attributes,
     client_id: &crate::process::ClientId
@@ -75,6 +91,19 @@ pub(crate) unsafe fn NtOpenProcess(
     let access_modes = *(&access_modes as *const _ as *const u32);
 
     syscall!(open_process, handle, access_modes, attributes, client_id)
+}
+
+/// Official documentation: [ntdll.NtQueryInformationProcess](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationprocess).
+#[allow(non_snake_case)]
+#[inline(always)]
+pub(crate) unsafe fn NtQueryInformationProcess(
+    process: crate::object::Handle,
+    information: crate::process::Information,
+    buffer: *mut u8,
+    buffer_size: u32,
+    written_size: *mut u32
+) -> crate::error::NtStatusResult {
+    syscall!(query_information_process, process, information, buffer, buffer_size, written_size)
 }
 
 /// Official documentation: [ntdll.NtTerminateProcess](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-zwterminateprocess).

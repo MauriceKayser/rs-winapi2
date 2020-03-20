@@ -9,8 +9,8 @@ extern "system" {
 
     /// Official documentation: [kernel32.GetConsoleMode](https://docs.microsoft.com/en-us/windows/console/getconsolemode).
     pub(crate) fn GetConsoleMode(
-        console_handle: crate::object::Handle,
-        // Flags, specific to `console_handle` being an in- or output handle.
+        handle: crate::object::Handle,
+        // Flags, specific to `handle` being an in- or output handle.
         modes: *mut u32
     ) -> crate::types::Boolean;
 

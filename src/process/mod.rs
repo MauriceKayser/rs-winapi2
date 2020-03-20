@@ -1,5 +1,7 @@
 //! All process related Windows types.
 
+pub mod info;
+
 /// Official documentation: [Process Security and Access Rights](https://docs.microsoft.com/en-us/windows/win32/procthread/process-security-and-access-rights).
 #[repr(C)]
 pub struct AccessModes(bitfield::BitField32);
@@ -69,6 +71,114 @@ impl ClientId {
     }
 }
 
+/// Official documentation: [ProcessInformationClass enum](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationprocess).
+///
+/// Unofficial documentation: [PROCESS_INFORMATION_CLASS enum](https://github.com/processhacker/processhacker/blob/master/phnt/include/ntpsapi.h).
+#[allow(unused)]
+#[repr(u32)]
+pub(crate) enum Information {
+    Basic,
+    QuotaLimits,
+    IoCounters,
+    VmCounters,
+    Times,
+    BasePriority,
+    RaisePriority,
+    DebugPort,
+    ExceptionPort,
+    AccessToken,
+    LocalDescriptorTable,
+    LocalDescriptorTableSize,
+    DefaultHardErrorMode,
+    IoPortHandlers,
+    PooledUsageAndLimits,
+    WorkingSetWatch,
+    UserModeIOPL,
+    EnableAlignmentFaultFixup,
+    PriorityClass,
+    Wx86,
+    HandleCount,
+    AffinityMask,
+    PriorityBoost,
+    DeviceMap,
+    Session,
+    Foreground,
+    Wow64,
+    ImageFileName,
+    LUIDDeviceMapsEnabled,
+    BreakOnTermination,
+    DebugObjectHandle,
+    DebugFlags,
+    HandleTracing,
+    IoPriority,
+    ExecuteFlags,
+    ResourceManagement,
+    Cookie,
+    Image,
+    CycleTime,
+    PagePriority,
+    InstrumentationCallback,
+    ThreadStackAllocation,
+    WorkingSetWatchEx,
+    ImageFileNameWin32,
+    ImageFileMapping,
+    AffinityUpdateMode,
+    MemoryAllocationMode,
+    Group,
+    TokenVirtualizationEnabled,
+    ConsoleHostProcess,
+    Window,
+    Handle,
+    MitigationPolicy,
+    DynamicFunctionTable,
+    HandleCheckingMode,
+    KeepAliveCount,
+    RevokeFileHandles,
+    WorkingSetControl,
+    HandleTable,
+    CheckStackExtentsMode,
+    CommandLine,
+    Protection,
+    MemoryExhaustion,
+    Fault,
+    TelemetryId,
+    CommitRelease,
+    DefaultCpuSets,
+    AllowedCpuSets,
+    SubsystemProcess,
+    JobMemory,
+    InPrivate,
+    RaiseUMExceptionOnInvalidHandleClose,
+    IumChallengeResponse,
+    ChildProcess,
+    HighGraphicsPriorityInformation,
+    Subsystem,
+    EnergyValues,
+    ActivityThrottleState,
+    ActivityThrottlePolicy,
+    Win32kSyscallFilter,
+    DisableSystemAllowedCpuSets,
+    Wake,
+    EnergyTrackingState,
+    ManageWritesToExecutableMemory,
+    CaptureTrustletLiveDump,
+    TelemetryCoverage,
+    Enclave,
+    EnableReadWriteVmLogging,
+    Uptime,
+    ImageSection,
+    DebugAuth,
+    SystemResourceManagement,
+    SequenceNumber,
+    LoaderDetour,
+    SecurityDomain,
+    CombineSecurityDomains,
+    EnableLogging,
+    LeapSecond,
+    FiberShadowStackAllocation,
+    FreeFiberShadowStackAllocation
+}
+
 /// Stores the necessary information to manipulate a process object.
 pub struct Process(crate::object::Handle);
 
@@ -77,6 +187,60 @@ impl Process {
     #[inline(always)]
     pub const fn current() -> Self {
         Self(crate::object::Handle::from(-1))
+    }
+
+    /// Official documentation: [PROCESS_BASIC_INFORMATION struct](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationprocess#process_basic_information).
+    ///
+    /// Returns basic information about the specified process.
+    #[inline(always)]
+    pub fn information(&self) -> Result<info::Basic, crate::error::Error> {
+        // There is no `kernel32` function which returns this information.
+        #[cfg(not(any(winapi = "native", winapi = "syscall")))]
+        { Self::information_ntdll(self).map_err(|e| crate::error::Error::NtStatus(e)) }
+        #[cfg(winapi = "native")]
+        { Self::information_ntdll(self).map_err(|e| crate::error::Error::NtStatus(e)) }
+        #[cfg(winapi = "syscall")]
+        { Self::information_syscall(self).map_err(|e| crate::error::Error::NtStatus(e)) }
+    }
+
+    /// Returns basic information about the specified process.
+    #[inline(always)]
+    pub fn information_ntdll(&self) -> Result<info::Basic, crate::error::NtStatus> {
+        unsafe {
+            let mut basic = core::mem::MaybeUninit::<info::Basic>::uninit();
+            let mut _written_size = core::mem::MaybeUninit::uninit();
+
+            match crate::dll::ntdll::NtQueryInformationProcess(
+                self.0.clone(),
+                Information::Basic,
+                basic.as_mut_ptr() as *mut _,
+                core::mem::size_of::<info::Basic>() as u32,
+                _written_size.as_mut_ptr()
+            ) {
+                None => Ok(basic.assume_init()),
+                Some(e) => Err(e)
+            }
+        }
+    }
+
+    /// Returns the process identifier of the specified process.
+    #[inline(always)]
+    pub fn information_syscall(&self) -> Result<info::Basic, crate::error::NtStatus> {
+        unsafe {
+            let mut basic = core::mem::MaybeUninit::<info::Basic>::uninit();
+            let mut _written_size = core::mem::MaybeUninit::uninit();
+
+            match crate::dll::syscall::NtQueryInformationProcess(
+                self.0.clone(),
+                Information::Basic,
+                basic.as_mut_ptr() as *mut _,
+                core::mem::size_of::<info::Basic>() as u32,
+                _written_size.as_mut_ptr()
+            ) {
+                None => Ok(basic.assume_init()),
+                Some(e) => Err(e)
+            }
+        }
     }
 
     /// Official documentation: [kernel32.OpenProcess](https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-openprocess).
@@ -126,11 +290,11 @@ impl Process {
         access_modes: AccessModes,
         attributes: &crate::object::Attributes
     ) -> Result<Self, crate::error::NtStatus> {
-        let mut handle = None;
+        let mut handle = core::mem::MaybeUninit::uninit();
 
         unsafe { crate::dll::ntdll::NtOpenProcess(
-            &mut handle, access_modes, attributes, client_id
-        ).map(|e| Err(e)).unwrap_or_else(|| Ok(Self(handle.unwrap()))) }
+            handle.as_mut_ptr(), access_modes, attributes, client_id
+        ).map(|e| Err(e)).unwrap_or_else(|| Ok(Self(handle.assume_init().unwrap()))) }
     }
 
     /// Tries to open an existing local process object.
@@ -140,11 +304,11 @@ impl Process {
         access_modes: AccessModes,
         attributes: &crate::object::Attributes
     ) -> Result<Self, crate::error::NtStatus> {
-        let mut handle = None;
+        let mut handle = core::mem::MaybeUninit::uninit();
 
         unsafe { crate::dll::syscall::NtOpenProcess(
-            &mut handle, access_modes, attributes, client_id
-        ).map(|e| Err(e)).unwrap_or_else(|| Ok(Self(handle.unwrap()))) }
+            handle.as_mut_ptr(), access_modes, attributes, client_id
+        ).map(|e| Err(e)).unwrap_or_else(|| Ok(Self(handle.assume_init().unwrap()))) }
     }
 
     /// Official documentation: [kernel32.TerminateProcess](https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-terminateprocess).

@@ -9,10 +9,19 @@ extern "system" {
 
     /// Official documentation: [ntdll.NtOpenProcess](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-ntopenprocess).
     pub(crate) fn NtOpenProcess(
-        handle: &mut Option<crate::object::Handle>,
+        handle: *mut Option<crate::object::Handle>,
         access_modes: crate::process::AccessModes,
         attributes: &crate::object::Attributes,
         client_id: &crate::process::ClientId
+    ) -> crate::error::NtStatusResult;
+
+    /// Official documentation: [ntdll.NtQueryInformationProcess](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationprocess).
+    pub(crate) fn NtQueryInformationProcess(
+        process: crate::object::Handle,
+        information: crate::process::Information,
+        buffer: *mut u8,
+        buffer_size: u32,
+        written_size: *mut u32
     ) -> crate::error::NtStatusResult;
 
     /// Official documentation: [ntdll.NtTerminateProcess](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-zwterminateprocess).
