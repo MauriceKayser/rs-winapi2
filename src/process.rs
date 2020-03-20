@@ -151,38 +151,34 @@ impl Process {
     ///
     /// Tries to terminate the process.
     #[inline(always)]
-    pub fn terminate(&self, exit_code: u32) -> Result<(), crate::error::Error> {
+    pub fn terminate(&self, exit_code: u32) -> crate::error::ErrorResult {
         #[cfg(not(any(winapi = "native", winapi = "syscall")))]
-        { self.terminate_kernel32(exit_code).map_err(|e| crate::error::Error::Status(e)) }
+        { self.terminate_kernel32(exit_code).map(|e| crate::error::Error::Status(e)) }
         #[cfg(winapi = "native")]
-        { self.terminate_ntdll(exit_code).map_err(|e| crate::error::Error::NtStatus(e)) }
+        { self.terminate_ntdll(exit_code).map(|e| crate::error::Error::NtStatus(e)) }
         #[cfg(winapi = "syscall")]
-        { self.terminate_syscall(exit_code).map_err(|e| crate::error::Error::NtStatus(e)) }
+        { self.terminate_syscall(exit_code).map(|e| crate::error::Error::NtStatus(e)) }
     }
 
     /// Tries to terminate the process by calling `kernel32.TerminateProcess`.
     #[inline(always)]
-    pub fn terminate_kernel32(&self, exit_code: u32) -> Result<(), crate::error::Status> {
-        unsafe { crate::error::Status::result_from_boolean(
-            crate::dll::kernel32::TerminateProcess(self.0.clone(), exit_code)
-        ) }
+    pub fn terminate_kernel32(&self, exit_code: u32) -> crate::error::StatusResult {
+        unsafe { crate::dll::kernel32::TerminateProcess(
+            self.0.clone(), exit_code
+        ).to_status_result() }
     }
 
     /// Tries to terminate the process by calling `ntdll.NtTerminateProcess`.
     #[inline(always)]
-    pub fn terminate_ntdll(&self, exit_code: u32) -> Result<(), crate::error::NtStatus> {
-        unsafe { crate::dll::ntdll::NtTerminateProcess(
-            self.0.clone(), exit_code
-        ).map(|e| Err(e)).unwrap_or(Ok(())) }
+    pub fn terminate_ntdll(&self, exit_code: u32) -> crate::error::NtStatusResult {
+        unsafe { crate::dll::ntdll::NtTerminateProcess(self.0.clone(), exit_code) }
     }
 
     /// Tries to terminate the process by directly calling the `ntdll.NtTerminateProcess` system
     /// call.
     #[inline(always)]
-    pub fn terminate_syscall(&self, exit_code: u32) -> Result<(), crate::error::NtStatus> {
-        unsafe { crate::dll::syscall::NtTerminateProcess(
-            self.0.clone(), exit_code
-        ).map(|e| Err(e)).unwrap_or(Ok(())) }
+    pub fn terminate_syscall(&self, exit_code: u32) -> crate::error::NtStatusResult {
+        unsafe { crate::dll::syscall::NtTerminateProcess(self.0.clone(), exit_code) }
     }
 }
 

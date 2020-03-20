@@ -1,5 +1,17 @@
 //! All error related Windows types.
 
+/// Used for functions which can return errors. If the value `None` is returned, no error occurred.
+#[must_use = "this `Option` may return an error, which should be handled"]
+pub type ErrorResult = Option<Error>;
+
+/// Used for functions which can return errors. If the value `None` is returned, no error occurred.
+#[must_use = "this `Option` may return an error, which should be handled"]
+pub type NtStatusResult = Option<NtStatus>;
+
+/// Used for functions which can return errors. If the value `None` is returned, no error occurred.
+#[must_use = "this `Option` may return an error, which should be handled"]
+pub type StatusResult = Option<Status>;
+
 /// An instance of this type is returned from functions that internally call Windows API functions
 /// which return either a `Status` or an `NtStatus`.
 #[allow(missing_docs)]
@@ -1832,13 +1844,9 @@ impl core::convert::Into<NtStatus> for NtStatusValue {
 pub struct Status(core::num::NonZeroU32);
 
 impl Status {
-    /// Returns `Ok` if `value` is `true`, and `Err(GetLastError())` otherwise.
-    #[inline(always)]
-    pub(crate) fn result_from_boolean(value: crate::types::Boolean) -> Result<(), Self> {
-        match value.into() {
-            true => Ok(()),
-            false => Err(unsafe { crate::dll::kernel32::GetLastError() })
-        }
+    /// Returns the last error code produced by the current thread.
+    pub(crate) fn last() -> Self {
+        unsafe { crate::dll::kernel32::GetLastError() }
     }
 }
 

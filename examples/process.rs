@@ -1,3 +1,5 @@
+extern crate alloc;
+
 fn main() {
     #[cfg(target_arch = "x86")]
     unsafe {
@@ -20,6 +22,8 @@ fn main() {
 
     use winapi2::process::*;
 
+    winapi2::print!("Opening system process..");
+
     let client_id = ClientId::from_process_id(4);
     let attributes = winapi2::object::Attributes::new(
         None,
@@ -35,8 +39,12 @@ fn main() {
         &attributes
     ).expect("could not open SYSTEM process");
 
-    process.terminate(1).expect_err("did not expect to terminate the SYSTEM process");
-    process.terminate_kernel32(2).expect_err("did not expect to terminate the SYSTEM process");
-    process.terminate_ntdll(3).expect_err("did not expect to terminate the SYSTEM process");
-    process.terminate_syscall(4).expect_err("did not expect to terminate the SYSTEM process");
+    winapi2::print!(" Trying to terminate..");
+
+    process.terminate(1).expect("did not expect to terminate the SYSTEM process");
+    process.terminate_kernel32(2).expect("did not expect to terminate the SYSTEM process");
+    process.terminate_ntdll(3).expect("did not expect to terminate the SYSTEM process");
+    process.terminate_syscall(4).expect("did not expect to terminate the SYSTEM process");
+
+    winapi2::println!(" did not terminate, as expected.");
 }

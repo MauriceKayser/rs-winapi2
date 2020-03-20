@@ -79,6 +79,8 @@ extern crate alloc;
 
 // All modules.
 
+#[macro_use]
+pub        mod console;
 pub(crate) mod dll;
 pub        mod error;
 pub        mod file;
@@ -90,6 +92,7 @@ pub(crate) mod types;
 
 // Export types.
 
+pub use console::Console;
 #[cfg(not(winapi = "syscall"))]
 pub use heap::Heap;
 pub use process::Process;

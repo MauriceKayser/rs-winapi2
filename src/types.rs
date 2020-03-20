@@ -21,4 +21,8 @@ impl Boolean {
     pub(crate) const fn into(self) -> bool {
         self.0 != 0
     }
+
+    pub(crate) fn to_status_result(self) -> crate::error::StatusResult {
+        (!self.into()).then_some(crate::error::Status::last())
+    }
 }

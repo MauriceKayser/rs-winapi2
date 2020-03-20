@@ -5,7 +5,7 @@ extern "system" {
     /// Official documentation: [ntdll.NtClose](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntclose).
     pub(crate) fn NtClose(
         object: crate::object::Handle
-    ) -> Option<crate::error::NtStatus>;
+    ) -> crate::error::NtStatusResult;
 
     /// Official documentation: [ntdll.NtOpenProcess](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-ntopenprocess).
     pub(crate) fn NtOpenProcess(
@@ -13,13 +13,13 @@ extern "system" {
         access_modes: crate::process::AccessModes,
         attributes: &crate::object::Attributes,
         client_id: &crate::process::ClientId
-    ) -> Option<crate::error::NtStatus>;
+    ) -> crate::error::NtStatusResult;
 
     /// Official documentation: [ntdll.NtTerminateProcess](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-zwterminateprocess).
     pub(crate) fn NtTerminateProcess(
         process: crate::object::Handle,
         exit_code: u32
-    ) -> Option<crate::error::NtStatus>;
+    ) -> crate::error::NtStatusResult;
 
     /// Official documentation: [ntdll.RtlAllocateHeap](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlallocateheap).
     pub(crate) fn RtlAllocateHeap(

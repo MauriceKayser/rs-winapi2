@@ -48,7 +48,7 @@ macro_rules! syscall {
             "intel", "volatile"
         );
 
-        *(&result as *const _ as *const Option<crate::error::NtStatus>)
+        *(&result as *const _ as *const crate::error::NtStatusResult)
     }};
 }
 
@@ -57,7 +57,7 @@ macro_rules! syscall {
 #[inline(always)]
 pub(crate) unsafe fn NtClose(
     object: crate::object::Handle
-) -> Option<crate::error::NtStatus> {
+) -> crate::error::NtStatusResult {
     let object = *(&object as *const _ as *const isize);
 
     syscall!(close, object)
@@ -71,7 +71,7 @@ pub(crate) unsafe fn NtOpenProcess(
     access_modes: crate::process::AccessModes,
     attributes: &crate::object::Attributes,
     client_id: &crate::process::ClientId
-) -> Option<crate::error::NtStatus> {
+) -> crate::error::NtStatusResult {
     let access_modes = *(&access_modes as *const _ as *const u32);
 
     syscall!(open_process, handle, access_modes, attributes, client_id)
@@ -83,7 +83,7 @@ pub(crate) unsafe fn NtOpenProcess(
 pub(crate) unsafe fn NtTerminateProcess(
     process: crate::object::Handle,
     exit_code: u32
-) -> Option<crate::error::NtStatus> {
+) -> crate::error::NtStatusResult {
     let process = *(&process as *const _ as *const isize);
 
     syscall!(terminate_process, process, exit_code)
