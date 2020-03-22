@@ -3,6 +3,7 @@
 #[link(name = "ntdll", kind = "dylib")]
 extern "system" {
     /// Official documentation: [ntdll.NtClose](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntclose).
+    #[cfg(winapi = "native")]
     pub(crate) fn NtClose(
         object: crate::object::Handle
     ) -> crate::error::NtStatusResult;

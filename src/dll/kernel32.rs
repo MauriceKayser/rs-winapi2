@@ -55,7 +55,7 @@ extern "system" {
     /// Official documentation: [kernel32.WriteConsoleW](https://docs.microsoft.com/en-us/windows/console/writeconsole).
     pub(crate) fn WriteConsoleW(
         output_handle: crate::object::Handle,
-        buffer: crate::string::Raw,
+        buffer: *const crate::string::WideChar,
         size: u32,
         written_size: *mut u32,
         _reserved: *const u8

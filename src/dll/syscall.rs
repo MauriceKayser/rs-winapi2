@@ -70,6 +70,7 @@ macro_rules! syscall {
 
 /// Official documentation: [ntdll.NtClose](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntclose).
 #[allow(non_snake_case)]
+#[cfg(winapi = "syscall")]
 #[inline(always)]
 pub(crate) unsafe fn NtClose(
     object: crate::object::Handle

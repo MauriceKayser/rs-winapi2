@@ -1,7 +1,5 @@
 //! All console related Windows types.
 
-use alloc::{ string::String, vec::Vec };
-
 /// Provides static methods to interact with the current console.
 pub struct Console();
 
@@ -15,7 +13,7 @@ impl Console {
 
     /// Writes wide char encoded text to the console.
     #[inline(always)]
-    pub fn write_wide(text: &[u16]) -> crate::error::ErrorResult {
+    pub fn write_wide(text: &crate::string::Str) -> crate::error::ErrorResult {
         Self::write_wide_kernel32(text).map(|s| crate::error::Error::Status(s))
         // TODO: ntdll & syscall.
     }
@@ -29,7 +27,7 @@ impl Console {
 
     /// Writes wide char encoded text to the error console.
     #[inline(always)]
-    pub fn write_error_wide(text: &[u16]) -> crate::error::ErrorResult {
+    pub fn write_error_wide(text: &crate::string::Str) -> crate::error::ErrorResult {
         Self::write_error_wide_kernel32(text).map(|s| crate::error::Error::Status(s))
         // TODO: ntdll & syscall.
     }
@@ -42,7 +40,7 @@ impl Console {
 
     /// Writes wide char encoded text to the console.
     #[inline(always)]
-    pub fn write_wide_kernel32(text: &[u16]) -> crate::error::StatusResult {
+    pub fn write_wide_kernel32(text: &crate::string::Str) -> crate::error::StatusResult {
         Self::internal_write_wide_kernel32(text, StandardDevice::Output)
     }
 
@@ -54,7 +52,7 @@ impl Console {
 
     /// Writes wide char encoded text to the error console.
     #[inline(always)]
-    pub fn write_error_wide_kernel32(text: &[u16]) -> crate::error::StatusResult {
+    pub fn write_error_wide_kernel32(text: &crate::string::Str) -> crate::error::StatusResult {
         Self::internal_write_wide_kernel32(text, StandardDevice::Error)
     }
 
@@ -73,7 +71,7 @@ impl Console {
                 if crate::dll::kernel32::GetConsoleMode(
                     output.clone(), _mode.as_mut_ptr()
                 ).into() {
-                    let converted: Vec<u16> = text.encode_utf16().collect();
+                    let converted = crate::string::String::from(text);
 
                     if crate::dll::kernel32::WriteConsoleW(
                         output,
@@ -103,7 +101,7 @@ impl Console {
 
     /// In case of the output being directed to the console, the text is written in UTF-16.
     /// In case of the output being redirected to a file, the text is converted to UTF-8.
-    fn internal_write_wide_kernel32(text: &[u16], standard_device: StandardDevice)
+    fn internal_write_wide_kernel32(text: &crate::string::Str, standard_device: StandardDevice)
         -> crate::error::StatusResult
     {
         unsafe {
@@ -126,7 +124,7 @@ impl Console {
                         return None;
                     }
                 } else {
-                    let converted = String::from_utf16_lossy(text);
+                    let converted = text.into_lossy();
 
                     if crate::dll::kernel32::WriteFile(
                         output,
