@@ -8,6 +8,7 @@ fn main() {
 
     print_self_info();
     try_terminate_system();
+    list_processes();
 }
 
 fn initialize_syscall_ids() {
@@ -18,6 +19,7 @@ fn initialize_syscall_ids() {
             close: 0x18D,
             open_process: 0xE9,
             query_information_process: 0xB9,
+            query_system_information: 0x9D,
             terminate_process: 0x24
         });
     }
@@ -28,6 +30,7 @@ fn initialize_syscall_ids() {
             close: 0x0F,
             open_process: 0x26,
             query_information_process: 0x19,
+            query_system_information: 0x36,
             terminate_process: 0x2C
         });
     }
@@ -69,4 +72,19 @@ fn try_terminate_system() {
     process.terminate_syscall(4).expect("did not expect to terminate the SYSTEM process");
 
     winapi2::println!("did not terminate, as expected.");
+}
+
+fn list_processes() {
+    winapi2::print!("Enumerating processes.. ");
+
+    let processes = Process::iter_ntdll().expect("could not list processes");
+
+    for entry in processes.iter(true) {
+        winapi2::print!("\n{} ", entry.process.id());
+        winapi2::print_wide!(entry.process.image_name());
+        winapi2::print!(
+            " ({} thread{})",
+            entry.threads.len(), if entry.threads.len() != 1 {"s"} else {""}
+        );
+    }
 }

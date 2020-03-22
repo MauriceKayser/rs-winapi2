@@ -24,7 +24,7 @@ pub enum Error {
 ///
 /// The value `STATUS_SUCCESS = 0` is encoded through the value `Ok(())` of the type
 /// `Result<(), NtStatus>` throughout the whole crate.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(transparent)]
 pub struct NtStatus(core::num::NonZeroU32);
 
@@ -1839,7 +1839,7 @@ impl core::convert::Into<NtStatus> for NtStatusValue {
 ///
 /// The value `ERROR_SUCCESS = 0` is encoded through the value `Ok(())` of the type
 /// `Result<(), Status>` throughout the whole crate.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(transparent)]
 pub struct Status(core::num::NonZeroU32);
 

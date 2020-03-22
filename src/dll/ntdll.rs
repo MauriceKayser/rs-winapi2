@@ -25,6 +25,14 @@ extern "system" {
         written_size: *mut u32
     ) -> crate::error::NtStatusResult;
 
+    /// Official documentation: [ntdll.NtQuerySystemInformation](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntquerysysteminformation).
+    pub(crate) fn NtQuerySystemInformation(
+        information: crate::system::Information,
+        buffer: *const u8,
+        buffer_size: u32,
+        return_size: Option<&u32>
+    ) -> Option<crate::error::NtStatus>;
+
     /// Official documentation: [ntdll.NtTerminateProcess](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-zwterminateprocess).
     pub(crate) fn NtTerminateProcess(
         process: crate::object::Handle,

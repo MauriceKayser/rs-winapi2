@@ -6,6 +6,7 @@ pub struct Ids {
     pub close: u16,
     pub open_process: u16,
     pub query_information_process: u16,
+    pub query_system_information: u16,
     pub terminate_process: u16
 }
 
@@ -105,6 +106,18 @@ pub(crate) unsafe fn NtQueryInformationProcess(
     written_size: *mut u32
 ) -> crate::error::NtStatusResult {
     syscall!(query_information_process, process, information, buffer, buffer_size, written_size)
+}
+
+/// Official documentation: [ntdll.NtQuerySystemInformation](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntquerysysteminformation).
+#[allow(non_snake_case)]
+#[inline(always)]
+pub(crate) unsafe fn NtQuerySystemInformation(
+    information: crate::system::Information,
+    buffer: *const u8,
+    buffer_size: u32,
+    return_size: Option<&u32>
+) -> Option<crate::error::NtStatus> {
+    syscall!(query_system_information, information, buffer, buffer_size, return_size)
 }
 
 /// Official documentation: [ntdll.NtTerminateProcess](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-zwterminateprocess).

@@ -81,6 +81,7 @@ extern crate alloc;
 
 #[macro_use]
 pub        mod console;
+pub(crate) mod conversion;
 pub(crate) mod dll;
 pub        mod error;
 pub        mod file;
@@ -88,6 +89,7 @@ pub        mod heap;
 pub        mod object;
 pub        mod process;
 pub        mod string;
+pub        mod system;
 pub(crate) mod types;
 
 // Export types.

@@ -7,3 +7,8 @@ pub struct Directory(pub(crate) crate::object::Handle);
 // TODO: Fill with actual data.
 #[repr(C)]
 pub(crate) struct Overlapped(u8);
+
+/// Official documentation: [FILETIME struct](https://docs.microsoft.com/en-us/windows/win32/api/minwinbase/ns-minwinbase-filetime).
+#[derive(Clone, Copy)]
+#[repr(C)]
+pub struct Time(u64);

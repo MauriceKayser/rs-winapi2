@@ -1,6 +1,9 @@
 //! All process related Windows types.
 
 pub mod info;
+pub mod thread;
+
+use alloc::vec::Vec;
 
 /// Official documentation: [Process Security and Access Rights](https://docs.microsoft.com/en-us/windows/win32/procthread/process-security-and-access-rights).
 #[repr(C)]
@@ -47,8 +50,8 @@ impl AccessModes {
 /// Official documentation: [CLIENT_ID struct](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/a11e7129-685b-4535-8d37-21d4596ac057).
 #[repr(C)]
 pub struct ClientId {
-    process: usize,
-    thread: usize
+    pub(crate) process: usize,
+    pub(crate) thread: usize
 }
 
 impl ClientId {
@@ -194,9 +197,9 @@ impl Process {
     /// Returns basic information about the specified process.
     #[inline(always)]
     pub fn information(&self) -> Result<info::Basic, crate::error::Error> {
-        // There is no `kernel32` function which returns this information.
+        // TODO: Implement kernel32 variant.
         #[cfg(not(any(winapi = "native", winapi = "syscall")))]
-        { Self::information_ntdll(self).map_err(|e| crate::error::Error::NtStatus(e)) }
+        { Err(crate::error::Error::NtStatus(crate::error::NtStatusValue::NotImplemented.into())) }
         #[cfg(winapi = "native")]
         { Self::information_ntdll(self).map_err(|e| crate::error::Error::NtStatus(e)) }
         #[cfg(winapi = "syscall")]
@@ -241,6 +244,76 @@ impl Process {
                 Some(e) => Err(e)
             }
         }
+    }
+
+    /// Returns an iterator over all currently running processes.
+    #[inline(always)]
+    pub fn iter() -> Result<RuntimeSnapshot, crate::error::Error> {
+        // TODO: Implement kernel32 variant (f. e. via `CreateToolhelp32Snapshot`).
+        #[cfg(not(any(winapi = "native", winapi = "syscall")))]
+        { Err(crate::error::Error::NtStatus(crate::error::NtStatusValue::NotImplemented.into())) }
+        #[cfg(winapi = "native")]
+        { Self::iter_ntdll().map_err(|e| crate::error::Error::NtStatus(e)) }
+        #[cfg(winapi = "syscall")]
+        { Self::iter_syscall().map_err(|e| crate::error::Error::NtStatus(e)) }
+    }
+
+    /// Returns an iterator over all currently running processes.
+    #[inline(always)]
+    pub fn iter_ntdll() -> Result<RuntimeSnapshot, crate::error::NtStatus> {
+        let mut buffer = Vec::new();
+
+        // Call the API and calculate the needed buffer size. Repeat until the buffer is big enough.
+        loop {
+            let mut return_size = 0;
+
+            match unsafe { crate::dll::ntdll::NtQuerySystemInformation(
+                crate::system::Information::Process,
+                buffer.as_ptr(),
+                buffer.capacity() as u32,
+                Some(&mut return_size)
+            ) } {
+                Some(e) if e == crate::error::NtStatusValue::InfoLengthMismatch.into() => {
+                    buffer.reserve(return_size as usize - buffer.capacity());
+                },
+                Some(e) => return Err(e),
+                None => {
+                    unsafe { buffer.set_len(return_size as usize); }
+                    break;
+                }
+            }
+        }
+
+        Ok(RuntimeSnapshot { buffer })
+    }
+
+    /// Returns an iterator over all currently running processes.
+    #[inline(always)]
+    pub fn iter_syscall() -> Result<RuntimeSnapshot, crate::error::NtStatus> {
+        let mut buffer = Vec::new();
+
+        // Call the API and calculate the needed buffer size. Repeat until the buffer is big enough.
+        loop {
+            let mut return_size = 0;
+
+            match unsafe { crate::dll::syscall::NtQuerySystemInformation(
+                crate::system::Information::Process,
+                buffer.as_ptr(),
+                buffer.capacity() as u32,
+                Some(&mut return_size)
+            ) } {
+                Some(e) if e == crate::error::NtStatusValue::InfoLengthMismatch.into() => {
+                    buffer.reserve(return_size as usize - buffer.capacity());
+                },
+                Some(e) => return Err(e),
+                None => {
+                    unsafe { buffer.set_len(return_size as usize); }
+                    break;
+                }
+            }
+        }
+
+        Ok(RuntimeSnapshot { buffer })
     }
 
     /// Official documentation: [kernel32.OpenProcess](https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-openprocess).
@@ -357,4 +430,72 @@ impl core::ops::Drop for Process {
         #[cfg(winapi = "syscall")]
         unsafe { crate::dll::syscall::NtClose(self.0.clone()); }
     }
+}
+
+/// Stores a snapshot of all currently running processes.
+pub struct RuntimeSnapshot {
+    buffer: Vec<u8>
+}
+
+impl RuntimeSnapshot {
+    /// Creates an iterator over the processes in the snapshot.
+    #[inline(always)]
+    pub fn iter(&self, include_threads: bool) -> RuntimeSnapshotIterator {
+        RuntimeSnapshotIterator { snapshot: &self, index: 0, include_threads, is_done: false }
+    }
+}
+
+/// Iterator over the processes in a `RuntimeSnapshot`.
+pub struct RuntimeSnapshotIterator<'a> {
+    snapshot: &'a RuntimeSnapshot,
+    index: usize,
+
+    include_threads: bool,
+    is_done: bool,
+}
+
+impl<'a> core::iter::Iterator for RuntimeSnapshotIterator<'a> {
+    type Item = RuntimeInformation<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.is_done { return None; }
+
+        // Cast the buffer to an `InformationProcess` struct.
+        let process: &crate::system::InformationProcess = unsafe {
+            crate::conversion::cast(&self.snapshot.buffer[self.index..])?
+        };
+
+        let mut threads = Vec::new();
+        let mut index = core::mem::size_of_val(process);
+
+        if self.include_threads {
+            for _ in 0..process.thread_count {
+                // Cast the buffer to an `InformationThread` struct.
+                let thread: &crate::system::InformationThread = unsafe {
+                    crate::conversion::cast(&self.snapshot.buffer[self.index + index..])?
+                };
+
+                threads.push(thread);
+                index += core::mem::size_of_val(thread);
+            }
+        }
+
+        // Add the offset to the index, if the offset is `0` set the status to `done`.
+        match process.next_offset {
+            Some(next_offset) => self.index += next_offset.get() as usize,
+            None => self.is_done = true
+        }
+
+        Some(RuntimeInformation { process, threads })
+    }
+}
+
+/// Stores information about a process in a `RuntimeSnapshot`.
+pub struct RuntimeInformation<'a> {
+    /// Stores information about the process.
+    pub process: &'a crate::system::InformationProcess<'a>,
+
+    /// Optionally stores information about the process's threads, if `include_threads` was
+    /// set to `true` when calling `RuntimeSnapshot::iter`.
+    pub threads: Vec<&'a crate::system::InformationThread>
 }
