@@ -2,13 +2,29 @@
 
 use alloc::vec::Vec;
 
+/// Generic string comparison functions.
+pub trait ImplString<T> {
+    /// Returns `true` if this string slice ends with the given sub string.
+    fn ends_with(&self, sub: T) -> bool;
+
+    /// Returns `true` if this string slice starts with with the given sub string.
+    fn starts_with(&self, sub: T) -> bool;
+}
+
 /// Borrowed reference to a `String`.
+#[derive(Eq, PartialEq)]
 pub struct Str([WideChar]);
 
 impl Str {
+    /// Returns a mutable raw pointer to the slice's buffer.
+    #[inline(always)]
+    pub fn as_mut_ptr(&mut self) -> *mut WideChar {
+        self as *mut _ as *mut WideChar
+    }
+
     /// Returns a raw pointer to the slice's buffer.
     #[inline(always)]
-    pub(crate) fn as_ptr(&self) -> *const WideChar {
+    pub fn as_ptr(&self) -> *const WideChar {
         self as *const _ as *const WideChar
     }
 
@@ -18,10 +34,94 @@ impl Str {
         alloc::string::String::from_utf16_lossy(self.into())
     }
 
+    /// Returns `true` if `self` has a length of zero bytes.
+    #[inline(always)]
+    pub const fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
     /// Returns the amount of referenced wide characters.
     #[inline(always)]
-    pub fn len(&self) -> usize {
+    pub const fn len(&self) -> usize {
         self.0.len()
+    }
+}
+
+impl ImplString<&str> for Str {
+    fn ends_with(&self, sub: &str) -> bool {
+        if self.len() * core::mem::size_of::<WideChar>() < sub.len() { return false; }
+
+        let mut index = self.len();
+        for c in sub.chars().rev() {
+            let mut utf16 = [0; 2];
+            let utf16 = c.encode_utf16(&mut utf16);
+
+            index -= utf16.len();
+
+            match utf16.len() {
+                1 => if self.0[index] != utf16[0] { return false; },
+
+                2 => if self.0[index] != utf16[0] || self.0[index + 1] != utf16[1] { return false; },
+
+                _ => return false
+            }
+        }
+
+        true
+    }
+
+    fn starts_with(&self, sub: &str) -> bool {
+        if self.len() * core::mem::size_of::<WideChar>() < sub.len() { return false; }
+
+        let mut index = 0;
+        for c in sub.chars() {
+            let mut utf16 = [0; 2];
+            let utf16 = c.encode_utf16(&mut utf16);
+
+            match utf16.len() {
+                1 => if self.0[index] != utf16[0] { return false; },
+
+                2 => if self.0[index] != utf16[0] || self.0[index + 1] != utf16[1] { return false; },
+
+                _ => return false
+            }
+
+            index += utf16.len();
+        }
+
+        true
+    }
+}
+
+impl ImplString<&Str> for Str {
+    fn ends_with(&self, sub: &Str) -> bool {
+        if self.len() < sub.len() { return false; }
+
+        self.0[self.len() - sub.len()..] == sub.0
+    }
+
+    fn starts_with(&self, sub: &Str) -> bool {
+        if self.len() < sub.len() { return false; }
+
+        self.0[..sub.len()] == sub.0
+    }
+}
+
+impl ImplString<&String> for Str {
+    fn ends_with(&self, sub: &String) -> bool {
+        self.ends_with(sub.as_ref())
+    }
+
+    fn starts_with(&self, sub: &String) -> bool {
+        self.starts_with(sub.as_ref())
+    }
+}
+
+impl core::cmp::PartialEq<str> for Str {
+    fn eq(&self, other: &str) -> bool {
+        if self.len() * core::mem::size_of::<WideChar>() != other.len() { return false; }
+
+        self.starts_with(other)
     }
 }
 
@@ -32,6 +132,13 @@ impl<'a> core::convert::From<&'a [WideChar]> for &'a Str {
     }
 }
 
+impl<'a> core::convert::From<&'a mut [WideChar]> for &'a mut Str {
+    #[inline(always)]
+    fn from(value: &'a mut [WideChar]) -> Self {
+        unsafe { &mut *(value as *mut [WideChar] as *mut Str) }
+    }
+}
+
 impl<'a> core::convert::Into<&'a [WideChar]> for &'a Str {
     #[inline(always)]
     fn into(self) -> &'a [WideChar] {
@@ -39,13 +146,32 @@ impl<'a> core::convert::Into<&'a [WideChar]> for &'a Str {
     }
 }
 
+impl<'a> core::convert::Into<&'a mut [WideChar]> for &'a mut Str {
+    #[inline(always)]
+    fn into(self) -> &'a mut [WideChar] {
+        unsafe { &mut *(self as *mut Str as *mut [WideChar]) }
+    }
+}
+
+impl core::fmt::Display for Str {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        f.write_str(&self.into_lossy())
+    }
+}
+
 /// Owns a wide char encoded string.
 pub struct String(Vec<WideChar>);
 
 impl String {
+    /// Returns a mutable raw pointer to the slice's buffer.
+    #[inline(always)]
+    pub fn as_mut_ptr(&mut self) -> *mut WideChar {
+        self.as_mut().as_mut_ptr()
+    }
+
     /// Returns a raw pointer to the slice's buffer.
     #[inline(always)]
-    pub(crate) fn as_ptr(&self) -> *const WideChar {
+    pub fn as_ptr(&self) -> *const WideChar {
         self.as_ref().as_ptr()
     }
 
@@ -55,10 +181,58 @@ impl String {
         self.as_ref().into_lossy()
     }
 
-    /// Returns the amount of stored wide characters.
+    /// Returns `true` if `self` has a length of zero bytes.
+    #[inline(always)]
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    /// Returns the amount of referenced wide characters.
     #[inline(always)]
     pub fn len(&self) -> usize {
-        self.as_ref().len()
+        self.0.len()
+    }
+}
+
+impl ImplString<&str> for String {
+    fn ends_with(&self, sub: &str) -> bool {
+        self.as_ref().ends_with(sub)
+    }
+
+    fn starts_with(&self, sub: &str) -> bool {
+        self.as_ref().starts_with(sub)
+    }
+}
+
+impl ImplString<&Str> for String {
+    fn ends_with(&self, sub: &Str) -> bool {
+        self.as_ref().ends_with(sub)
+    }
+
+    fn starts_with(&self, sub: &Str) -> bool {
+        self.as_ref().starts_with(sub)
+    }
+}
+
+impl ImplString<&String> for String {
+    fn ends_with(&self, sub: &String) -> bool {
+        self.as_ref().ends_with(sub.as_ref())
+    }
+
+    fn starts_with(&self, sub: &String) -> bool {
+        self.as_ref().starts_with(sub.as_ref())
+    }
+}
+
+impl core::cmp::PartialEq<Str> for String {
+    fn eq(&self, other: &Str) -> bool {
+        self.as_ref().eq(other)
+    }
+}
+
+impl core::cmp::PartialEq<str> for String {
+    fn eq(&self, other: &str) -> bool {
+        self.as_ref().eq(other)
     }
 }
 
@@ -83,6 +257,19 @@ impl core::convert::AsRef<Str> for String {
     }
 }
 
+impl core::convert::AsMut<Str> for String {
+    #[inline(always)]
+    fn as_mut(&mut self) -> &mut Str {
+        self
+    }
+}
+
+impl core::fmt::Debug for String {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        f.write_str(&self.as_ref().into_lossy())
+    }
+}
+
 impl core::ops::Deref for String {
     type Target = Str;
 
@@ -92,13 +279,26 @@ impl core::ops::Deref for String {
     }
 }
 
+impl core::ops::DerefMut for String {
+    #[inline(always)]
+    fn deref_mut(&mut self) -> &mut Str {
+        &mut self[..]
+    }
+}
+
 impl core::ops::Index<core::ops::RangeFull> for String {
     type Output = Str;
 
     #[inline(always)]
     fn index(&self, _index: core::ops::RangeFull) -> &Str {
         core::convert::From::<&[WideChar]>::from(self.0.as_slice())
-        // Str::from(self.0.as_slice())
+    }
+}
+
+impl core::ops::IndexMut<core::ops::RangeFull> for String {
+    #[inline(always)]
+    fn index_mut(&mut self, _index: core::ops::RangeFull) -> &mut Str {
+        core::convert::From::<&mut [WideChar]>::from(self.0.as_mut_slice())
     }
 }
 
@@ -125,3 +325,19 @@ impl<'a> core::convert::Into<&'a Str> for &'a StringW<'a> {
 ///
 /// Strings on Windows are encoded in WTF-16.
 pub type WideChar = u16;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn impl_string() {
+        let s = String::from("Test 123\0");
+
+        assert!(s.ends_with("123\0"));
+        assert!(!s.ends_with("123"));
+
+        assert!(s.starts_with("Test"));
+        assert!(!s.starts_with("Best"));
+    }
+}

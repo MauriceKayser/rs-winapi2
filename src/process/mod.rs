@@ -189,7 +189,7 @@ impl Process {
     /// Returns an instance which uses a pseudo handle with all access to the current process.
     #[inline(always)]
     pub const fn current() -> Self {
-        Self(crate::object::Handle::from(-1))
+        Self(crate::object::Handle::from(unsafe { core::num::NonZeroIsize::new_unchecked(-1) }))
     }
 
     /// Official documentation: [PROCESS_BASIC_INFORMATION struct](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationprocess#process_basic_information).
@@ -197,13 +197,19 @@ impl Process {
     /// Returns basic information about the specified process.
     #[inline(always)]
     pub fn information(&self) -> Result<info::Basic, crate::error::Error> {
-        // TODO: Implement kernel32 variant.
         #[cfg(not(any(winapi = "native", winapi = "syscall")))]
-        { Err(crate::error::Error::NtStatus(crate::error::NtStatusValue::NotImplemented.into())) }
+        { Self::information_kernel32(self).map_err(|e| crate::error::Error::Status(e)) }
         #[cfg(winapi = "native")]
         { Self::information_ntdll(self).map_err(|e| crate::error::Error::NtStatus(e)) }
         #[cfg(winapi = "syscall")]
         { Self::information_syscall(self).map_err(|e| crate::error::Error::NtStatus(e)) }
+    }
+
+    /// Returns basic information about the specified process.
+    #[inline(always)]
+    pub fn information_kernel32(&self) -> Result<info::Basic, crate::error::Status> {
+        // TODO: Implement and test.
+        Err(crate::error::StatusValue::CallNotImplemented.into())
     }
 
     /// Returns basic information about the specified process.
@@ -249,13 +255,19 @@ impl Process {
     /// Returns an iterator over all currently running processes.
     #[inline(always)]
     pub fn iter() -> Result<RuntimeSnapshot, crate::error::Error> {
-        // TODO: Implement kernel32 variant (f. e. via `CreateToolhelp32Snapshot`).
         #[cfg(not(any(winapi = "native", winapi = "syscall")))]
-        { Err(crate::error::Error::NtStatus(crate::error::NtStatusValue::NotImplemented.into())) }
+        { Self::iter_kernel32().map_err(|e| crate::error::Error::Status(e)) }
         #[cfg(winapi = "native")]
         { Self::iter_ntdll().map_err(|e| crate::error::Error::NtStatus(e)) }
         #[cfg(winapi = "syscall")]
         { Self::iter_syscall().map_err(|e| crate::error::Error::NtStatus(e)) }
+    }
+
+    /// Returns an iterator over all currently running processes.
+    #[inline(always)]
+    pub fn iter_kernel32() -> Result<RuntimeSnapshot, crate::error::Status> {
+        // TODO: Implement and test (f. e. via `CreateToolhelp32Snapshot`).
+        Err(crate::error::StatusValue::CallNotImplemented.into())
     }
 
     /// Returns an iterator over all currently running processes.
@@ -498,4 +510,92 @@ pub struct RuntimeInformation<'a> {
     /// Optionally stores information about the process's threads, if `include_threads` was
     /// set to `true` when calling `RuntimeSnapshot::iter`.
     pub threads: Vec<&'a crate::system::InformationThread>
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::string::ImplString;
+
+    #[test]
+    fn process_kernel32() {
+        let me = Process::current();
+
+        assert_eq!(
+            me.information_kernel32().err(),
+            Some(crate::error::StatusValue::CallNotImplemented.into())
+        );
+
+        // TODO: Implement.
+    }
+
+    #[test]
+    fn process_ntdll() {
+        let me_all = Process::current();
+        let info_all = me_all.information_ntdll().unwrap();
+        let snapshot = Process::iter_ntdll().unwrap();
+
+        let snap_me = snapshot.iter(true).filter(
+            |entry| entry.process.id() == info_all.id()
+        ).collect::<Vec<_>>();
+
+        assert_eq!(snap_me.len(), 1);
+
+        let snap_me = snap_me.first().unwrap();
+
+        assert!(snap_me.threads.len() > 0);
+        assert!(snap_me.process.image_name().starts_with("winapi2-"));
+        assert!(snap_me.process.image_name().ends_with(".exe"));
+
+        let me_limited = Process::open_ntdll(
+            &ClientId::from_process_id(info_all.id()),
+            AccessModes::new().set(AccessMode::QueryLimitedInformation, true),
+            &crate::object::Attributes::new(
+                None,
+                None,
+                crate::object::AttributeFlags::new(),
+                None,
+                None
+            )
+        ).unwrap();
+        let info_limited = me_limited.information_ntdll().unwrap();
+
+        assert_eq!(info_all.id(), info_limited.id());
+    }
+
+    #[test]
+    fn process_syscall() {
+        crate::SyscallIds::initialize_10_1909();
+
+        let me_all = Process::current();
+        let info_all = me_all.information_syscall().unwrap();
+        let snapshot = Process::iter_syscall().unwrap();
+
+        let snap_me = snapshot.iter(true).filter(
+            |entry| entry.process.id() == info_all.id()
+        ).collect::<Vec<_>>();
+
+        assert_eq!(snap_me.len(), 1);
+
+        let snap_me = snap_me.first().unwrap();
+
+        assert!(snap_me.threads.len() > 0);
+        assert!(snap_me.process.image_name().starts_with("winapi2-"));
+        assert!(snap_me.process.image_name().ends_with(".exe"));
+
+        let me_limited = Process::open_syscall(
+            &ClientId::from_process_id(info_all.id()),
+            AccessModes::new().set(AccessMode::QueryLimitedInformation, true),
+            &crate::object::Attributes::new(
+                None,
+                None,
+                crate::object::AttributeFlags::new(),
+                None,
+                None
+            )
+        ).unwrap();
+        let info_limited = me_limited.information_syscall().unwrap();
+
+        assert_eq!(info_all.id(), info_limited.id());
+    }
 }

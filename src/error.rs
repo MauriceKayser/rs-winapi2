@@ -1,5 +1,7 @@
 //! All error related Windows types.
 
+use from_primitive::FromPrimitive;
+
 /// Used for functions which can return errors. If the value `None` is returned, no error occurred.
 #[must_use = "this `Option` may return an error, which should be handled"]
 pub type ErrorResult = Option<Error>;
@@ -22,9 +24,9 @@ pub enum Error {
 
 /// Official documentation: [NTSTATUS struct](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/87fba13e-bf06-450e-83b1-9241dc81e781).
 ///
-/// The value `STATUS_SUCCESS = 0` is encoded through the value `Ok(())` of the type
-/// `Result<(), NtStatus>` throughout the whole crate.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+/// The value `STATUS_SUCCESS = 0` is encoded through the value `None` of the type
+/// `Option<NtStatus>` throughout the whole crate.
+#[derive(Clone, Copy, Eq, PartialEq)]
 #[repr(transparent)]
 pub struct NtStatus(core::num::NonZeroU32);
 
@@ -37,9 +39,18 @@ impl NtStatus {
     }
 }
 
+impl core::fmt::Debug for NtStatus {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        match core::convert::TryInto::<NtStatusValue>::try_into(self.0.get()) {
+            Ok(v) => f.write_str(&alloc::format!("NtStatus({:?})", v)),
+            Err(e) => f.write_str(&alloc::format!("NtStatus({})", e))
+        }
+    }
+}
+
 /// Official documentation: [NTSTATUS values](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/596a1078-e883-4972-9bbc-49e60bebca55).
 #[allow(missing_docs)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, FromPrimitive)]
 #[repr(u32)]
 pub enum NtStatusValue {
     UserApc = 0x000000C0,
@@ -1837,9 +1848,9 @@ impl core::convert::Into<NtStatus> for NtStatusValue {
 
 /// Official documentation: [System Error Codes](https://docs.microsoft.com/en-us/windows/win32/debug/system-error-codes).
 ///
-/// The value `ERROR_SUCCESS = 0` is encoded through the value `Ok(())` of the type
-/// `Result<(), Status>` throughout the whole crate.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+/// The value `ERROR_SUCCESS = 0` is encoded through the value `None` of the type
+/// `Option<Status>` throughout the whole crate.
+#[derive(Clone, Copy, Eq, PartialEq)]
 #[repr(transparent)]
 pub struct Status(core::num::NonZeroU32);
 
@@ -1850,9 +1861,18 @@ impl Status {
     }
 }
 
+impl core::fmt::Debug for Status {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        match core::convert::TryInto::<StatusValue>::try_into(self.0.get()) {
+            Ok(v) => f.write_str(&alloc::format!("Status({:?})", v)),
+            Err(e) => f.write_str(&alloc::format!("Status({})", e))
+        }
+    }
+}
+
 /// Official documentation: [System Error Codes](https://docs.microsoft.com/en-us/windows/win32/debug/system-error-codes).
 #[allow(missing_docs)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, FromPrimitive)]
 #[repr(u32)]
 pub enum StatusValue {
     InvalidFunction = 1,

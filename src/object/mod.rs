@@ -104,18 +104,18 @@ pub struct Directory(Handle);
 ///
 /// The trait `core::ops::Drop` is not implemented for this type, the internal users of this type
 /// have to make sure they call the necessary Windows API to free the held resources.
-// #[derive(Clone)]
+#[derive(Clone)]
 #[repr(transparent)]
 pub(crate) struct Handle(core::num::NonZeroIsize);
 
 impl Handle {
     // TODO: Remove once traits can have const fns (https://github.com/rust-lang/rfcs/pull/2632).
-    /// `const` implementation of `core::convert::From<isize>`.
+    /// `const` implementation of `core::convert::From<core::num::NonZeroIsize>`.
     ///
     /// To be used by functions which act upon pseudo-handles like `CURRENT_PROCESS = -1`.
     #[inline(always)]
-    pub(crate) const fn from(value: isize) -> Self {
-        unsafe { Self(core::num::NonZeroIsize::new_unchecked(value)) }
+    pub(crate) const fn from(value: core::num::NonZeroIsize) -> Self {
+        Self(value)
     }
 
     /// Returns a boolean whether the given handle value is a pseudo handle (lower than `0`).
@@ -125,8 +125,13 @@ impl Handle {
     }
 }
 
-impl core::clone::Clone for Handle {
-    fn clone(&self) -> Self {
-        Self::from(self.0.get())
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn handle_is_pseudo() {
+        assert!(Handle(unsafe { core::num::NonZeroIsize::new_unchecked(-1) }).is_pseudo());
+        assert!(!Handle(unsafe { core::num::NonZeroIsize::new_unchecked(1) }).is_pseudo());
     }
 }

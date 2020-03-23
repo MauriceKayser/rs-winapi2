@@ -4,36 +4,16 @@ use winapi2::process::*;
 
 fn main() {
     // Must be the done before any syscall related `winapi2` function is called.
-    initialize_syscall_ids();
+    winapi2::SyscallIds::initialize_10_1909();
 
+    winapi2::print!("1. ");
     print_self_info();
-    try_terminate_system();
-    list_processes();
-}
 
-fn initialize_syscall_ids() {
-    #[cfg(target_arch = "x86")]
-    unsafe {
-        // Windows 10 Professional x86 v1909.
-        winapi2::SYSCALL_IDS = Some(winapi2::SyscallIds {
-            close: 0x18D,
-            open_process: 0xE9,
-            query_information_process: 0xB9,
-            query_system_information: 0x9D,
-            terminate_process: 0x24
-        });
-    }
-    #[cfg(target_arch = "x86_64")]
-    unsafe {
-        // Windows 10 Professional x86_64 v1909.
-        winapi2::SYSCALL_IDS = Some(winapi2::SyscallIds {
-            close: 0x0F,
-            open_process: 0x26,
-            query_information_process: 0x19,
-            query_system_information: 0x36,
-            terminate_process: 0x2C
-        });
-    }
+    winapi2::print!("2. ");
+    try_terminate_system();
+
+    winapi2::print!("3. ");
+    list_processes();
 }
 
 fn print_self_info() {
@@ -64,7 +44,7 @@ fn try_terminate_system() {
         &attributes
     ).expect("could not open SYSTEM process, I might not be admin");
 
-    winapi2::print!("\nTrying to terminate.. ");
+    winapi2::print!("Trying to terminate.. ");
 
     process.terminate(1).expect("did not expect to terminate the SYSTEM process");
     process.terminate_kernel32(2).expect("did not expect to terminate the SYSTEM process");
@@ -80,10 +60,9 @@ fn list_processes() {
     let processes = Process::iter_ntdll().expect("could not list processes");
 
     for entry in processes.iter(true) {
-        winapi2::print!("\n{} ", entry.process.id());
-        winapi2::print_wide!(entry.process.image_name());
         winapi2::print!(
-            " ({} thread{})",
+            "\n{:8} {} ({} thread{})",
+            entry.process.id(), entry.process.image_name(),
             entry.threads.len(), if entry.threads.len() != 1 {"s"} else {""}
         );
     }

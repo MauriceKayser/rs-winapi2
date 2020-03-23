@@ -13,6 +13,34 @@ pub struct Ids {
 /// Global instance of system call ids that is used by all internal functions.
 pub static mut IDS: Option<Ids> = None;
 
+impl Ids {
+    /// Initializes the system call id table with the `Windows 10 1909` values.
+    pub fn initialize_10_1909() {
+        #[cfg(target_arch = "x86")]
+        unsafe {
+            // Windows 10 Professional x86 v1909.
+            IDS = Some(Ids {
+                close: 0x18D,
+                open_process: 0xE9,
+                query_information_process: 0xB9,
+                query_system_information: 0x9D,
+                terminate_process: 0x24
+            });
+        }
+        #[cfg(target_arch = "x86_64")]
+        unsafe {
+            // Windows 10 Professional x86_64 v1909.
+            IDS = Some(Ids {
+                close: 0x0F,
+                open_process: 0x26,
+                query_information_process: 0x19,
+                query_system_information: 0x36,
+                terminate_process: 0x2C
+            });
+        }
+    }
+}
+
 // TODO: Add x86 assembly shell code variant.
 // TODO: Handle more than 5 parameters (if necessary).
 // TODO: Handle WoW64?

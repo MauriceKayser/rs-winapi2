@@ -39,10 +39,15 @@
 //! in the `eax` register.
 //!
 //! The crate loads these indices from the `crate::SYSCALL_IDS` variable, which must be set by the
-//! crate user prior to any `winapi2` usage:
+//! crate user prior to any `winapi2` usage. Either set them explicitly, or call a function like
+//! `winapi2::SyscallIds::initialize_10_1909` to outsource the task to the library itself:
 //!
 //! ```ignore
 //! fn main() {
+//!     // Either outsourced:
+//!     winapi2::SyscallIds::initialize_10_1909();
+//!
+//!     // Or explicit:
 //!     #[cfg(target_arch = "x86")]
 //!     unsafe {
 //!         winapi2::SYSCALL_IDS = Some(winapi2::SyscallIds {
