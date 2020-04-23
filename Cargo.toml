@@ -1,8 +1,10 @@
 [package]
 authors = ["Maurice Kayser"]
 edition = "2018"
-keywords = ["ffi", "win32", "winapi", "windows"]
+keywords = ["ffi", "nt", "ntapi", "syscall", "sysenter", "win32", "winapi", "windows"]
+license = "MIT/Apache-2.0"
 name = "winapi2"
+readme = "README.md"
 version = "0.1.0"
 
 [dependencies]

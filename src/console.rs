@@ -95,7 +95,7 @@ impl Console {
                 }
             }
 
-            Some(crate::error::Status::last())
+            Some(crate::error::Status::last().unwrap())
         }
     }
 
@@ -138,7 +138,7 @@ impl Console {
                 }
             }
 
-            Some(crate::error::Status::last())
+            Some(crate::error::Status::last().unwrap())
         }
     }
 }
@@ -155,25 +155,25 @@ pub(crate) enum StandardDevice {
 /// Prints to the standard output.
 #[macro_export]
 macro_rules! print {
-    ($($arg:tt)*) => (let _ = $crate::console::Console::write(&alloc::format!($($arg)*)););
+    ($($arg:tt)*) => ({let _ = $crate::console::Console::write(&alloc::format!($($arg)*));});
 }
 
 /// Prints to the standard error.
 #[macro_export]
 macro_rules! eprint {
-    ($($arg:tt)*) => (let _ = $crate::console::Console::write_error(&alloc::format!($($arg)*)););
+    ($($arg:tt)*) => ({let _ = $crate::console::Console::write_error(&alloc::format!($($arg)*));});
 }
 
 /// Prints to the standard output.
 #[macro_export]
 macro_rules! print_wide {
-    ($wstr:expr) => (let _ = $crate::console::Console::write_wide($wstr););
+    ($wstr:expr) => ({let _ = $crate::console::Console::write_wide($wstr);});
 }
 
 /// Prints to the standard error.
 #[macro_export]
 macro_rules! eprint_wide {
-    ($wstr:expr) => (let _ = $crate::console::Console::write_error_wide($wstr););
+    ($wstr:expr) => ({let _ = $crate::console::Console::write_error_wide($wstr);});
 }
 
 /// Prints to the standard output, with an appended new-line character.

@@ -15,7 +15,7 @@ extern "system" {
     ) -> crate::types::Boolean;
 
     /// Official documentation: [kernel32.GetLastError](https://docs.microsoft.com/en-us/windows/win32/api/errhandlingapi/nf-errhandlingapi-getlasterror).
-    pub(crate) fn GetLastError() -> crate::error::Status;
+    pub(crate) fn GetLastError() -> Option<crate::error::Status>;
 
     /// Official documentation: [kernel32.GetProcessHeap](https://docs.microsoft.com/en-us/windows/desktop/api/heapapi/nf-heapapi-getprocessheap).
     pub(crate) fn GetProcessHeap() -> Option<crate::heap::SystemHeapHandle>;

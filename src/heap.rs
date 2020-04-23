@@ -8,7 +8,8 @@ pub type Heap = SystemHeapKernel32;
 #[cfg(winapi = "native")]
 pub type Heap = SystemHeapNtDll;
 
-// TODO: Add Rust heap implementation for `#[cfg(winapi = "syscall")]` and remove `cfg` attribute in `lib.rs`.
+// TODO: Add Rust heap implementation for `#[cfg(winapi = "syscall")]` and remove `cfg` attribute in
+//  `lib.rs`.
 
 /// Allocator which uses the native process heap, stored in the process environment block.
 pub struct SystemHeapKernel32 {
@@ -113,6 +114,7 @@ pub(crate) struct SystemHeapHandle(core::num::NonZeroUsize);
 
 /// Official documentation: [kernel32.HeapAlloc flags](https://docs.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapalloc).
 /// Official documentation: [kernel32.HeapCreate flags](https://docs.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapcreate).
+#[derive(Copy, Clone, Eq, PartialEq)]
 #[repr(C)]
 pub(crate) struct SystemHeapFlags(bitfield::BitField32);
 

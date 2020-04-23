@@ -10,7 +10,7 @@ extern "system" {
 
     /// Official documentation: [ntdll.NtOpenProcess](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-ntopenprocess).
     pub(crate) fn NtOpenProcess(
-        handle: *mut Option<crate::object::Handle>,
+        handle: *mut crate::object::Handle,
         access_modes: crate::process::AccessModes,
         attributes: &crate::object::Attributes,
         client_id: &crate::process::ClientId

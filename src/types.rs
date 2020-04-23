@@ -22,7 +22,8 @@ impl Boolean {
         self.0 != 0
     }
 
+    /// Collects the last `Status` value if this boolean is `false`.
     pub(crate) fn to_status_result(self) -> crate::error::StatusResult {
-        (!self.into()).then_some(crate::error::Status::last())
+        (!self.into()).then(|| crate::error::Status::last().unwrap())
     }
 }

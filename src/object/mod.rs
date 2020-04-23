@@ -64,6 +64,7 @@ pub enum AttributeDirectory<'a> {
 }
 
 /// Official documentation: [OBJECT_ATTRIBUTES struct](https://docs.microsoft.com/en-us/windows/win32/api/ntdef/ns-ntdef-_object_attributes).
+#[derive(Copy, Clone, Eq, PartialEq)]
 #[repr(C)]
 pub struct AttributeFlags(bitfield::BitField32);
 
@@ -122,6 +123,19 @@ impl Handle {
     #[inline(always)]
     pub(crate) const fn is_pseudo(&self) -> bool {
         self.0.get() < 0
+    }
+
+    /// Closes the specified handle, if it is not a pseudo-handle.
+    #[inline(always)]
+    pub(crate) fn close(self) {
+        if self.is_pseudo() { return; }
+
+        #[cfg(not(any(winapi = "native", winapi = "syscall")))]
+        unsafe { crate::dll::kernel32::CloseHandle(self); }
+        #[cfg(winapi = "native")]
+        unsafe { crate::dll::ntdll::NtClose(self); }
+        #[cfg(winapi = "syscall")]
+        unsafe { crate::dll::syscall::NtClose(self); }
     }
 }
 

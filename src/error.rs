@@ -1840,8 +1840,11 @@ pub enum NtStatusValue {
     VhdDifferencingChainErrorInParent = 0xC03A0019
 }
 
-impl core::convert::Into<NtStatus> for NtStatusValue {
-    fn into(self) -> NtStatus {
+impl NtStatusValue {
+    // TODO: Remove once traits can have const fns (https://github.com/rust-lang/rfcs/pull/2632).
+    /// `const` implementation of `core::convert::Into<NtStatus>`.
+    #[inline(always)]
+    pub const fn into(self) -> NtStatus {
         unsafe { NtStatus(core::num::NonZeroU32::new_unchecked(self as u32)) }
     }
 }
@@ -1856,7 +1859,7 @@ pub struct Status(core::num::NonZeroU32);
 
 impl Status {
     /// Returns the last error code produced by the current thread.
-    pub(crate) fn last() -> Self {
+    pub(crate) fn last() -> Option<Self> {
         unsafe { crate::dll::kernel32::GetLastError() }
     }
 }
@@ -4622,8 +4625,11 @@ pub enum StatusValue {
     ApiUnavailable = 15841
 }
 
-impl core::convert::Into<Status> for StatusValue {
-    fn into(self) -> Status {
+impl StatusValue {
+    // TODO: Remove once traits can have const fns (https://github.com/rust-lang/rfcs/pull/2632).
+    /// `const` implementation of `core::convert::Into<Status>`.
+    #[inline(always)]
+    pub const fn into(self) -> Status {
         unsafe { Status(core::num::NonZeroU32::new_unchecked(self as u32)) }
     }
 }

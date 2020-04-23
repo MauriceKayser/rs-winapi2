@@ -113,7 +113,7 @@ pub(crate) unsafe fn NtClose(
 #[allow(non_snake_case)]
 #[inline(always)]
 pub(crate) unsafe fn NtOpenProcess(
-    handle: *mut Option<crate::object::Handle>,
+    handle: *mut crate::object::Handle,
     access_modes: crate::process::AccessModes,
     attributes: &crate::object::Attributes,
     client_id: &crate::process::ClientId

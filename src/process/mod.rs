@@ -6,6 +6,7 @@ pub mod thread;
 use alloc::vec::Vec;
 
 /// Official documentation: [Process Security and Access Rights](https://docs.microsoft.com/en-us/windows/win32/procthread/process-security-and-access-rights).
+#[derive(Copy, Clone, Eq, PartialEq)]
 #[repr(C)]
 pub struct AccessModes(bitfield::BitField32);
 
@@ -364,7 +365,7 @@ impl Process {
         ) };
         match handle {
             Some(handle) => Ok(Self(handle)),
-            None => Err(unsafe { crate::dll::kernel32::GetLastError() })
+            None => Err(crate::error::Status::last().unwrap())
         }
     }
 
@@ -379,7 +380,7 @@ impl Process {
 
         unsafe { crate::dll::ntdll::NtOpenProcess(
             handle.as_mut_ptr(), access_modes, attributes, client_id
-        ).map(|e| Err(e)).unwrap_or_else(|| Ok(Self(handle.assume_init().unwrap()))) }
+        ).map(|e| Err(e)).unwrap_or_else(|| Ok(Self(handle.assume_init()))) }
     }
 
     /// Tries to open an existing local process object.
@@ -393,7 +394,7 @@ impl Process {
 
         unsafe { crate::dll::syscall::NtOpenProcess(
             handle.as_mut_ptr(), access_modes, attributes, client_id
-        ).map(|e| Err(e)).unwrap_or_else(|| Ok(Self(handle.assume_init().unwrap()))) }
+        ).map(|e| Err(e)).unwrap_or_else(|| Ok(Self(handle.assume_init()))) }
     }
 
     /// Official documentation: [kernel32.TerminateProcess](https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-terminateprocess).
@@ -433,14 +434,7 @@ impl Process {
 
 impl core::ops::Drop for Process {
     fn drop(&mut self) {
-        if self.0.is_pseudo() { return; }
-
-        #[cfg(not(any(winapi = "native", winapi = "syscall")))]
-        unsafe { crate::dll::kernel32::CloseHandle(self.0.clone()); }
-        #[cfg(winapi = "native")]
-        unsafe { crate::dll::ntdll::NtClose(self.0.clone()); }
-        #[cfg(winapi = "syscall")]
-        unsafe { crate::dll::syscall::NtClose(self.0.clone()); }
+        self.0.clone().close();
     }
 }
 
