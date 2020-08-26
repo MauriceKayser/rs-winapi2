@@ -94,12 +94,14 @@ impl ImplString<&str> for Str {
 }
 
 impl ImplString<&Str> for Str {
+    #[inline(always)]
     fn ends_with(&self, sub: &Str) -> bool {
         if self.len() < sub.len() { return false; }
 
         self.0[self.len() - sub.len()..] == sub.0
     }
 
+    #[inline(always)]
     fn starts_with(&self, sub: &Str) -> bool {
         if self.len() < sub.len() { return false; }
 
@@ -108,16 +110,19 @@ impl ImplString<&Str> for Str {
 }
 
 impl ImplString<&String> for Str {
+    #[inline(always)]
     fn ends_with(&self, sub: &String) -> bool {
         self.ends_with(sub.as_ref())
     }
 
+    #[inline(always)]
     fn starts_with(&self, sub: &String) -> bool {
         self.starts_with(sub.as_ref())
     }
 }
 
 impl core::cmp::PartialEq<str> for Str {
+    #[inline(always)]
     fn eq(&self, other: &str) -> bool {
         if self.len() * core::mem::size_of::<WideChar>() != other.len() { return false; }
 
@@ -153,7 +158,15 @@ impl<'a> core::convert::Into<&'a mut [WideChar]> for &'a mut Str {
     }
 }
 
+impl core::fmt::Debug for Str {
+    #[inline(always)]
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        f.write_str(&self.into_lossy())
+    }
+}
+
 impl core::fmt::Display for Str {
+    #[inline(always)]
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         f.write_str(&self.into_lossy())
     }
@@ -195,42 +208,50 @@ impl String {
 }
 
 impl ImplString<&str> for String {
+    #[inline(always)]
     fn ends_with(&self, sub: &str) -> bool {
         self.as_ref().ends_with(sub)
     }
 
+    #[inline(always)]
     fn starts_with(&self, sub: &str) -> bool {
         self.as_ref().starts_with(sub)
     }
 }
 
 impl ImplString<&Str> for String {
+    #[inline(always)]
     fn ends_with(&self, sub: &Str) -> bool {
         self.as_ref().ends_with(sub)
     }
 
+    #[inline(always)]
     fn starts_with(&self, sub: &Str) -> bool {
         self.as_ref().starts_with(sub)
     }
 }
 
 impl ImplString<&String> for String {
+    #[inline(always)]
     fn ends_with(&self, sub: &String) -> bool {
         self.as_ref().ends_with(sub.as_ref())
     }
 
+    #[inline(always)]
     fn starts_with(&self, sub: &String) -> bool {
         self.as_ref().starts_with(sub.as_ref())
     }
 }
 
 impl core::cmp::PartialEq<Str> for String {
+    #[inline(always)]
     fn eq(&self, other: &Str) -> bool {
         self.as_ref().eq(other)
     }
 }
 
 impl core::cmp::PartialEq<str> for String {
+    #[inline(always)]
     fn eq(&self, other: &str) -> bool {
         self.as_ref().eq(other)
     }
@@ -264,7 +285,8 @@ impl core::convert::AsMut<Str> for String {
     }
 }
 
-impl core::fmt::Debug for String {
+impl core::fmt::Display for String {
+    #[inline(always)]
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         f.write_str(&self.as_ref().into_lossy())
     }
@@ -318,6 +340,18 @@ impl<'a> core::convert::Into<&'a Str> for &'a StringW<'a> {
             self.buffer,
             self.length as usize / core::mem::size_of::<WideChar>()
         ) })
+    }
+}
+
+impl<'a> core::convert::From<&'a Str> for StringW<'a> {
+    #[inline(always)]
+    fn from(value: &'a Str) -> Self {
+        Self {
+            length: (value.0.len() * core::mem::size_of::<WideChar>()) as u16,
+            capacity: (value.0.len() * core::mem::size_of::<WideChar>()) as u16,
+            buffer: value.as_ptr(),
+            _phantom: core::marker::PhantomData
+        }
     }
 }
 

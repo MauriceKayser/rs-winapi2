@@ -7,11 +7,41 @@ extern "system" {
         object: crate::object::Handle
     ) -> crate::types::Boolean;
 
+    /// Official documentation: [kernel32.CreateDirectoryW](https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createdirectoryw).
+    pub(crate) fn CreateDirectoryW(
+        path: *const crate::string::WideChar,
+        security_descriptor: Option<&crate::object::security::Descriptor>
+    ) -> crate::types::Boolean;
+
+    /// Official documentation: [kernel32.CreateFileW](https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew).
+    pub(crate) fn CreateFileW(
+        path: *const crate::string::WideChar,
+        // Specializations:
+        // - `crate::file::DirectoryAccessModes`
+        // - `crate::file::FileAccessModes`
+        access_modes: u32,
+        share_modes: crate::file::ShareModes,
+        security_descriptor: Option<&crate::object::security::Descriptor>,
+        // Specializations:
+        // - `crate::file::CreationDispositionDirectoryKernel32`
+        // - `crate::file::CreationDispositionFileKernel32`
+        creation_disposition: u32,
+        attributes: crate::file::Attributes,
+        template: Option<crate::object::Handle>
+    ) -> crate::object::Handle;
+
     /// Official documentation: [kernel32.GetConsoleMode](https://docs.microsoft.com/en-us/windows/console/getconsolemode).
     pub(crate) fn GetConsoleMode(
         handle: crate::object::Handle,
         // Flags, specific to `handle` being an in- or output handle.
         modes: *mut u32
+    ) -> crate::types::Boolean;
+
+    /// Official documentation: [kernel32.GetFileAttributesExW](https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfileattributesexw).
+    pub(crate) fn GetFileAttributesExW(
+        path: *const crate::string::WideChar,
+        level: crate::file::AttributeInfoLevel,
+        buffer: *mut u8
     ) -> crate::types::Boolean;
 
     /// Official documentation: [kernel32.GetLastError](https://docs.microsoft.com/en-us/windows/win32/api/errhandlingapi/nf-errhandlingapi-getlasterror).

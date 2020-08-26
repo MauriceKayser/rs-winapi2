@@ -75,7 +75,7 @@
 //! the application if no exception handlers are set up!
 
 #![deny(missing_docs)]
-#![feature(asm, bool_to_option)]
+#![feature(bool_to_option, llvm_asm)]
 #![no_std]
 
 // External crates.
@@ -100,6 +100,7 @@ pub(crate) mod types;
 // Export types.
 
 pub use console::Console;
+pub use file::{Directory, File};
 #[cfg(not(winapi = "syscall"))]
 pub use heap::Heap;
 pub use process::Process;
@@ -107,3 +108,11 @@ pub use dll::syscall::{
     Ids as SyscallIds,
     IDS as SYSCALL_IDS
 };
+
+/// Initializes the system call ids, if they are not initialized, yet.
+#[cfg(test)]
+fn init_syscall_ids() {
+    if unsafe { SYSCALL_IDS.is_none() } {
+        SyscallIds::initialize_10_1909();
+    }
+}

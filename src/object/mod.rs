@@ -1,11 +1,14 @@
 //! All object related Windows types.
 
+use enum_extensions::Iterator;
+
 pub mod security;
 
 /// Official documentation: [ACCESS_MASK format](https://docs.microsoft.com/en-us/windows/win32/secauthz/access-mask-format).
 ///
 /// Specializations: [Access Rights and Access Masks](https://docs.microsoft.com/en-us/windows/win32/secauthz/access-rights-and-access-masks).
 #[allow(missing_docs)]
+#[derive(Copy, Clone, Debug, Iterator)]
 #[repr(u8)]
 pub enum AccessMode {
     Delete,
@@ -24,11 +27,12 @@ pub enum AccessMode {
 #[repr(C)]
 pub struct Attributes<'a> {
     length: u32,
-    root_directory: Option<Handle>,
-    object_name: Option<&'a crate::string::StringW<'a>>,
-    flags: AttributeFlags,
-    security_descriptor: Option<&'a security::Descriptor>,
-    security_quality_of_service: Option<&'a security::QualityOfService>
+    /// A `Handle` with any access other than none is sufficient.
+    pub(crate) root_directory: Option<Handle>,
+    pub(crate) object_name: Option<&'a crate::string::StringW<'a>>,
+    pub(crate) flags: AttributeFlags,
+    pub(crate) security_descriptor: Option<&'a security::Descriptor>,
+    pub(crate) security_quality_of_service: Option<&'a security::QualityOfService>
 }
 
 impl<'a> Attributes<'a> {
@@ -53,6 +57,19 @@ impl<'a> Attributes<'a> {
             security_quality_of_service
         }
     }
+
+    /// Creates a new instance.
+    #[inline(always)]
+    pub const fn from_name(object_name: &'a crate::string::StringW<'a>) -> Self {
+        Self {
+            length: core::mem::size_of::<Attributes>() as u32,
+            root_directory: None,
+            object_name: Some(object_name),
+            flags: AttributeFlags::new(),
+            security_descriptor: None,
+            security_quality_of_service: None
+        }
+    }
 }
 
 /// The `Attributes` root directory field can refer to a file system directory or an object
@@ -70,16 +87,18 @@ pub struct AttributeFlags(bitfield::BitField32);
 
 /// Official documentation: [OBJECT_ATTRIBUTES struct](https://docs.microsoft.com/en-us/windows/win32/api/ntdef/ns-ntdef-_object_attributes).
 #[allow(missing_docs)]
+#[derive(Copy, Clone, Debug, Iterator)]
 #[repr(u8)]
 pub enum AttributeFlag {
     Inherit = 1,
     Permanent = 4,
     Exclusive,
-    CaseInsensitive,
+    ForceCaseInsensitive,
     OpenIf,
     OpenLink,
     KernelHandle,
-    ForceAccessCheck
+    ForceAccessCheck,
+    IgnoreImpersonatedDeviceMap
 }
 
 impl AttributeFlags {
@@ -95,6 +114,8 @@ impl AttributeFlags {
         Self(self.0.set_bit(flag as u8, value))
     }
 }
+
+bitfield::impl_debug!(AttributeFlags, AttributeFlag::iter());
 
 /// Stores the necessary information to manipulate an object directory in the object manager
 /// namespace.

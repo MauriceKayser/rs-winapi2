@@ -9,4 +9,4 @@ version = "0.1.0"
 
 [dependencies]
 bitfield = { git = "https://github.com/MauriceKayser/rs-bitfield" }
-from_primitive = { git = "https://github.com/MauriceKayser/rs-from-primitive" }
+enum_extensions = { git = "https://github.com/MauriceKayser/rs-enum_extensions" }

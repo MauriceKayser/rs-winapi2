@@ -4,6 +4,7 @@
 ///
 /// Unofficial documentation: [SYSTEM_INFORMATION_CLASS enum](https://www.geoffchappell.com/studies/windows/km/ntoskrnl/api/ex/sysinfo/class.htm).
 #[allow(unused)]
+#[derive(Copy, Clone, Debug)]
 #[repr(u32)]
 pub(crate) enum Information {
     Basic,
@@ -263,7 +264,7 @@ impl<'a> InformationProcess<'a> {
 
     #[allow(missing_docs)]
     #[inline(always)]
-    pub fn id(&self) -> u32 {
+    pub const fn id(&self) -> u32 {
         self.id_ as u32
     }
 
@@ -275,8 +276,47 @@ impl<'a> InformationProcess<'a> {
 
     #[allow(missing_docs)]
     #[inline(always)]
-    pub fn inherited_from_id(&self) -> u32 {
+    pub const fn inherited_from_id(&self) -> u32 {
         self.inherited_from_id_ as u32
+    }
+}
+
+impl<'a> core::fmt::Debug for InformationProcess<'a> {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        f.debug_struct(stringify!(InformationProcess))
+            .field(stringify!(working_set_private_size), &self.working_set_private_size)
+            .field(stringify!(hard_fault_count), &self.hard_fault_count)
+            .field(stringify!(thread_count_high), &self.thread_count_high)
+            .field(stringify!(cycle_time), &self.cycle_time)
+            .field(stringify!(create_time), &self.create_time)
+            .field(stringify!(user_time), &self.user_time)
+            .field(stringify!(kernel_time), &self.kernel_time)
+            .field(stringify!(image_name), &self.image_name())
+            .field(stringify!(base_priority), &self.base_priority())
+            .field(stringify!(id), &self.id())
+            .field(stringify!(inherited_from_id), &self.inherited_from_id())
+            .field(stringify!(handle_count), &self.handle_count)
+            .field(stringify!(session_id), &self.session_id)
+            .field(stringify!(key), &self.key)
+            .field(stringify!(virtual_size_peak), &self.virtual_size_peak)
+            .field(stringify!(virtual_size), &self.virtual_size)
+            .field(stringify!(page_fault_count), &self.page_fault_count)
+            .field(stringify!(working_set_size_peak), &self.working_set_size_peak)
+            .field(stringify!(working_set_size), &self.working_set_size)
+            .field(stringify!(paged_pool_quota_size_peak), &self.paged_pool_quota_size_peak)
+            .field(stringify!(paged_pool_quota_size), &self.paged_pool_quota_size)
+            .field(stringify!(non_paged_pool_quota_size_peak), &self.non_paged_pool_quota_size_peak)
+            .field(stringify!(non_paged_pool_quota_size), &self.non_paged_pool_quota_size)
+            .field(stringify!(page_file_size), &self.page_file_size)
+            .field(stringify!(page_file_size_peak), &self.page_file_size_peak)
+            .field(stringify!(private_page_size), &self.private_page_size)
+            .field(stringify!(operation_read_count), &self.operation_read_count)
+            .field(stringify!(operation_write_count), &self.operation_write_count)
+            .field(stringify!(operation_other_count), &self.operation_other_count)
+            .field(stringify!(transfer_read_count), &self.transfer_read_count)
+            .field(stringify!(transfer_write_count), &self.transfer_write_count)
+            .field(stringify!(transfer_other_count), &self.transfer_other_count)
+            .finish()
     }
 }
 
@@ -306,7 +346,7 @@ impl InformationThread {
 
     #[allow(missing_docs)]
     #[inline(always)]
-    pub fn id(&self) -> u32 {
+    pub const fn id(&self) -> u32 {
         self.id_.thread as u32
     }
 
@@ -326,5 +366,23 @@ impl InformationThread {
     #[inline(always)]
     pub fn wait_reason(&self) -> Result<crate::process::thread::WaitReason, u32> {
         core::convert::TryFrom::try_from(self.wait_reason_)
+    }
+}
+
+impl core::fmt::Debug for InformationThread {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        f.debug_struct(stringify!(InformationThread))
+            .field(stringify!(kernel_time), &self.kernel_time)
+            .field(stringify!(user_time), &self.user_time)
+            .field(stringify!(create_time), &self.create_time)
+            .field(stringify!(wait_time), &self.wait_time)
+            .field(stringify!(start_address), &self.start_address)
+            .field(stringify!(id), &self.id())
+            .field(stringify!(priority), &self.priority())
+            .field(stringify!(base_priority), &self.base_priority())
+            .field(stringify!(context_switches), &self.context_switches)
+            .field(stringify!(state), &self.state())
+            .field(stringify!(wait_reason), &self.wait_reason())
+            .finish()
     }
 }

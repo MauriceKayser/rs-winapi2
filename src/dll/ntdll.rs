@@ -8,12 +8,39 @@ extern "system" {
         object: crate::object::Handle
     ) -> crate::error::NtStatusResult;
 
+    /// Official documentation: [ntdll.NtCreateFile](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntcreatefile).
+    pub(crate) fn NtCreateFile(
+        handle: *mut crate::object::Handle,
+        // Specializations:
+        // - `crate::file::DirectoryAccessModes`
+        // - `crate::file::FileAccessModes`
+        access_modes: u32,
+        object_attributes: &crate::object::Attributes,
+        io_status_block: *mut crate::file::IoStatusBlock,
+        allocation_size: Option<&u64>,
+        attributes: crate::file::Attributes,
+        share_modes: crate::file::ShareModes,
+        // Specializations:
+        // - `crate::file::CreationDispositionDirectoryNtDll`
+        // - `crate::file::CreationDispositionFileNtDll`
+        creation_disposition: u32,
+        creation_options: crate::file::CreationOptions,
+        extended_attributes: Option<&crate::file::ntfs::ExtendedAttributesInformation>,
+        extended_attributes_size: u32
+    ) -> crate::error::NtStatusResult;
+
     /// Official documentation: [ntdll.NtOpenProcess](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-ntopenprocess).
     pub(crate) fn NtOpenProcess(
         handle: *mut crate::object::Handle,
         access_modes: crate::process::AccessModes,
         attributes: &crate::object::Attributes,
         client_id: &crate::process::ClientId
+    ) -> crate::error::NtStatusResult;
+
+    /// Official documentation: [ntdll.NtQueryFullAttributesFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwqueryfullattributesfile).
+    pub(crate) fn NtQueryFullAttributesFile(
+        attributes: &crate::object::Attributes,
+        information: *mut crate::file::info::BasicNtDll
     ) -> crate::error::NtStatusResult;
 
     /// Official documentation: [ntdll.NtQueryInformationProcess](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationprocess).

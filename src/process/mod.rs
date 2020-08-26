@@ -4,6 +4,7 @@ pub mod info;
 pub mod thread;
 
 use alloc::vec::Vec;
+use enum_extensions::Iterator;
 
 /// Official documentation: [Process Security and Access Rights](https://docs.microsoft.com/en-us/windows/win32/procthread/process-security-and-access-rights).
 #[derive(Copy, Clone, Eq, PartialEq)]
@@ -11,12 +12,16 @@ use alloc::vec::Vec;
 pub struct AccessModes(bitfield::BitField32);
 
 /// Official documentation: [Process Security and Access Rights](https://docs.microsoft.com/en-us/windows/win32/procthread/process-security-and-access-rights).
+///
+/// Unofficial documentation: [Process Hacker - ntpsapi.h](https://github.com/processhacker/processhacker/blob/master/phnt/include/ntpsapi.h).
 #[allow(missing_docs)]
+#[derive(Copy, Clone, Debug, Iterator)]
 #[repr(u8)]
 pub enum AccessMode {
     Terminate,
     CreateThread,
-    VirtualMemoryOperation = 3,
+    SetSessionId,
+    VirtualMemoryOperation,
     VirtualMemoryRead,
     VirtualMemoryWrite,
     DuplicateHandle,
@@ -48,6 +53,36 @@ impl AccessModes {
     }
 }
 
+impl core::fmt::Debug for AccessModes {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        let mut formatted = alloc::string::String::new();
+
+        for flag in AccessMode::iter() {
+            if self.0.bit(*flag as u8) {
+                if formatted.len() > 0 {
+                    formatted.push_str(" | ");
+                }
+                formatted.push_str(&alloc::format!("{:?}", flag));
+            }
+        }
+
+        for flag in crate::object::AccessMode::iter() {
+            if self.0.bit(*flag as u8 + 16) {
+                if formatted.len() > 0 {
+                    formatted.push_str(" | ");
+                }
+                formatted.push_str(&alloc::format!("{:?}", flag));
+            }
+        }
+
+        if formatted.len() == 0 {
+            formatted.push('-');
+        }
+
+        f.write_str(formatted.as_ref())
+    }
+}
+
 /// Official documentation: [CLIENT_ID struct](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/a11e7129-685b-4535-8d37-21d4596ac057).
 #[repr(C)]
 pub struct ClientId {
@@ -58,19 +93,19 @@ pub struct ClientId {
 impl ClientId {
     /// Creates a new instance.
     #[inline(always)]
-    pub fn new(process: u32, thread: u32) -> Self {
+    pub const fn new(process: u32, thread: u32) -> Self {
         Self { process: process as usize, thread: thread as usize }
     }
 
     /// Creates an instance from a process object id.
     #[inline(always)]
-    pub fn from_process_id(id: u32) -> Self {
+    pub const fn from_process_id(id: u32) -> Self {
         Self { process: id as usize, thread: 0 }
     }
 
     /// Creates an instance from a thread object id.
     #[inline(always)]
-    pub fn from_thread_id(id: u32) -> Self {
+    pub const fn from_thread_id(id: u32) -> Self {
         Self { process: 0, thread: id as usize }
     }
 }
@@ -79,6 +114,7 @@ impl ClientId {
 ///
 /// Unofficial documentation: [PROCESS_INFORMATION_CLASS enum](https://github.com/processhacker/processhacker/blob/master/phnt/include/ntpsapi.h).
 #[allow(unused)]
+#[derive(Copy, Clone, Debug, Iterator)]
 #[repr(u32)]
 pub(crate) enum Information {
     Basic,
@@ -433,6 +469,7 @@ impl Process {
 }
 
 impl core::ops::Drop for Process {
+    #[inline(always)]
     fn drop(&mut self) {
         self.0.clone().close();
     }
@@ -446,7 +483,7 @@ pub struct RuntimeSnapshot {
 impl RuntimeSnapshot {
     /// Creates an iterator over the processes in the snapshot.
     #[inline(always)]
-    pub fn iter(&self, include_threads: bool) -> RuntimeSnapshotIterator {
+    pub const fn iter(&self, include_threads: bool) -> RuntimeSnapshotIterator {
         RuntimeSnapshotIterator { snapshot: &self, index: 0, include_threads, is_done: false }
     }
 }
@@ -457,12 +494,13 @@ pub struct RuntimeSnapshotIterator<'a> {
     index: usize,
 
     include_threads: bool,
-    is_done: bool,
+    is_done: bool
 }
 
 impl<'a> core::iter::Iterator for RuntimeSnapshotIterator<'a> {
     type Item = RuntimeInformation<'a>;
 
+    #[inline(always)]
     fn next(&mut self) -> Option<Self::Item> {
         if self.is_done { return None; }
 
@@ -497,6 +535,7 @@ impl<'a> core::iter::Iterator for RuntimeSnapshotIterator<'a> {
 }
 
 /// Stores information about a process in a `RuntimeSnapshot`.
+#[derive(Debug)]
 pub struct RuntimeInformation<'a> {
     /// Stores information about the process.
     pub process: &'a crate::system::InformationProcess<'a>,
@@ -559,7 +598,7 @@ mod tests {
 
     #[test]
     fn process_syscall() {
-        crate::SyscallIds::initialize_10_1909();
+        crate::init_syscall_ids();
 
         let me_all = Process::current();
         let info_all = me_all.information_syscall().unwrap();

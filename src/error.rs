@@ -1,6 +1,6 @@
 //! All error related Windows types.
 
-use from_primitive::FromPrimitive;
+use enum_extensions::FromPrimitive;
 
 /// Used for functions which can return errors. If the value `None` is returned, no error occurred.
 #[must_use = "this `Option` may return an error, which should be handled"]

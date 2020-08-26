@@ -10,10 +10,10 @@ fn main() {
     print_self_info();
 
     winapi2::print!("2. ");
-    try_terminate_system();
+    list_processes();
 
     winapi2::print!("3. ");
-    list_processes();
+    try_terminate_system();
 }
 
 fn print_self_info() {
@@ -24,6 +24,22 @@ fn print_self_info() {
     );
 
     winapi2::println!("I am: {}, parent is {}.", information.id(), information.inherited_from_id());
+}
+
+fn list_processes() {
+    winapi2::print!("Enumerating processes.. ");
+
+    let processes = Process::iter_ntdll().expect("could not list processes");
+
+    for entry in processes.iter(true) {
+        winapi2::print!(
+            "\n{:8} {} ({} thread{})",
+            entry.process.id(), entry.process.image_name(),
+            entry.threads.len(), if entry.threads.len() != 1 {"s"} else {""}
+        );
+    }
+
+    winapi2::println!();
 }
 
 fn try_terminate_system() {
@@ -52,18 +68,4 @@ fn try_terminate_system() {
     process.terminate_syscall(4).expect("did not expect to terminate the SYSTEM process");
 
     winapi2::println!("did not terminate, as expected.");
-}
-
-fn list_processes() {
-    winapi2::print!("Enumerating processes.. ");
-
-    let processes = Process::iter_ntdll().expect("could not list processes");
-
-    for entry in processes.iter(true) {
-        winapi2::print!(
-            "\n{:8} {} ({} thread{})",
-            entry.process.id(), entry.process.image_name(),
-            entry.threads.len(), if entry.threads.len() != 1 {"s"} else {""}
-        );
-    }
 }

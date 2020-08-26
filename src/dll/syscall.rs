@@ -4,7 +4,9 @@
 #[allow(missing_docs)]
 pub struct Ids {
     pub close: u16,
+    pub create_file: u16,
     pub open_process: u16,
+    pub query_full_attributes_file: u16,
     pub query_information_process: u16,
     pub query_system_information: u16,
     pub terminate_process: u16
@@ -14,14 +16,16 @@ pub struct Ids {
 pub static mut IDS: Option<Ids> = None;
 
 impl Ids {
-    /// Initializes the system call id table with the `Windows 10 1909` values.
+    /// Initializes the system call id table with the `Windows 10 v1909` values.
     pub fn initialize_10_1909() {
         #[cfg(target_arch = "x86")]
         unsafe {
             // Windows 10 Professional x86 v1909.
             IDS = Some(Ids {
                 close: 0x18D,
+                create_file: 0x178,
                 open_process: 0xE9,
+                query_full_attributes_file: 0xC0,
                 query_information_process: 0xB9,
                 query_system_information: 0x9D,
                 terminate_process: 0x24
@@ -32,7 +36,39 @@ impl Ids {
             // Windows 10 Professional x86_64 v1909.
             IDS = Some(Ids {
                 close: 0x0F,
+                create_file: 0x55,
                 open_process: 0x26,
+                query_full_attributes_file: 0x140,
+                query_information_process: 0x19,
+                query_system_information: 0x36,
+                terminate_process: 0x2C
+            });
+        }
+    }
+
+    /// Initializes the system call id table with the `Windows 10 v2004` values.
+    pub fn initialize_10_2004() {
+        #[cfg(target_arch = "x86")]
+        unsafe {
+            // Windows 10 Professional x86 v2004.
+            IDS = Some(Ids {
+                close: 0x18E,
+                create_file: 0x178,
+                open_process: 0xE9,
+                query_full_attributes_file: 0xC0,
+                query_information_process: 0xB9,
+                query_system_information: 0x9D,
+                terminate_process: 0x24
+            });
+        }
+        #[cfg(target_arch = "x86_64")]
+        unsafe {
+            // Windows 10 Professional x86_64 v2004.
+            IDS = Some(Ids {
+                close: 0x0F,
+                create_file: 0x55,
+                open_process: 0x26,
+                query_full_attributes_file: 0x146,
                 query_information_process: 0x19,
                 query_system_information: 0x36,
                 terminate_process: 0x2C
@@ -42,7 +78,7 @@ impl Ids {
 }
 
 // TODO: Add x86 assembly shell code variant.
-// TODO: Handle more than 5 parameters (if necessary).
+// TODO: Handle more than 11 parameters (if necessary).
 // TODO: Handle WoW64?
 #[cfg(target_arch = "x86_64")]
 macro_rules! syscall {
@@ -78,6 +114,93 @@ macro_rules! syscall {
             add rsp, 0x30
         ", "{rcx}"($p1), "{rdx}"($p2), "{r8}"($p3), "{r9}"($p4), "rn"($p5))
     };
+    ($id:ident, $p1:ident, $p2:ident, $p3:ident, $p4:ident, $p5:ident, $p6:ident) => {
+        syscall!(#2 $id, "
+            sub rsp, 0x40
+            mov [rsp + 0x28], $6
+            mov [rsp + 0x30], $7
+            mov r10, rcx
+            syscall
+            add rsp, 0x40
+        ", "{rcx}"($p1), "{rdx}"($p2), "{r8}"($p3), "{r9}"($p4), "rn"($p5), "rn"($p6))
+    };
+    ($id:ident, $p1:ident, $p2:ident, $p3:ident, $p4:ident, $p5:ident, $p6:ident, $p7:ident) => {
+        syscall!(#2 $id, "
+            sub rsp, 0x40
+            mov [rsp + 0x28], $6
+            mov [rsp + 0x30], $7
+            mov [rsp + 0x38], $8
+            mov r10, rcx
+            syscall
+            add rsp, 0x40
+        ", "{rcx}"($p1), "{rdx}"($p2), "{r8}"($p3), "{r9}"($p4), "rn"($p5), "rn"($p6), "rn"($p7))
+    };
+    ($id:ident, $p1:ident, $p2:ident, $p3:ident, $p4:ident, $p5:ident, $p6:ident, $p7:ident,
+     $p8:ident)
+    => {
+        syscall!(#2 $id, "
+            sub rsp, 0x50
+            mov [rsp + 0x28], $6
+            mov [rsp + 0x30], $7
+            mov [rsp + 0x38], $8
+            mov [rsp + 0x40], $9
+            mov r10, rcx
+            syscall
+            add rsp, 0x50
+        ", "{rcx}"($p1), "{rdx}"($p2), "{r8}"($p3), "{r9}"($p4), "rn"($p5), "rn"($p6), "rn"($p7),
+        "rn"($p8))
+    };
+    ($id:ident, $p1:ident, $p2:ident, $p3:ident, $p4:ident, $p5:ident, $p6:ident, $p7:ident,
+     $p8:ident, $p9:ident)
+    => {
+        syscall!(#2 $id, "
+            sub rsp, 0x50
+            mov [rsp + 0x28], $6
+            mov [rsp + 0x30], $7
+            mov [rsp + 0x38], $8
+            mov [rsp + 0x40], $9
+            mov [rsp + 0x48], $10
+            mov r10, rcx
+            syscall
+            add rsp, 0x50
+        ", "{rcx}"($p1), "{rdx}"($p2), "{r8}"($p3), "{r9}"($p4), "rn"($p5), "rn"($p6), "rn"($p7),
+        "rn"($p8), "rn"($p9))
+    };
+    ($id:ident, $p1:ident, $p2:ident, $p3:ident, $p4:ident, $p5:ident, $p6:ident, $p7:ident,
+     $p8:ident, $p9:ident, $p10:ident)
+    => {
+        syscall!(#2 $id, "
+            sub rsp, 0x60
+            mov [rsp + 0x28], $6
+            mov [rsp + 0x30], $7
+            mov [rsp + 0x38], $8
+            mov [rsp + 0x40], $9
+            mov [rsp + 0x48], $10
+            mov [rsp + 0x50], $11
+            mov r10, rcx
+            syscall
+            add rsp, 0x60
+        ", "{rcx}"($p1), "{rdx}"($p2), "{r8}"($p3), "{r9}"($p4), "rn"($p5), "rn"($p6), "rn"($p7),
+        "rn"($p8), "rn"($p9), "rn"($p10))
+    };
+    ($id:ident, $p1:ident, $p2:ident, $p3:ident, $p4:ident, $p5:ident, $p6:ident, $p7:ident,
+     $p8:ident, $p9:ident, $p10:ident, $p11:ident)
+    => {
+        syscall!(#2 $id, "
+            sub rsp, 0x60
+            mov [rsp + 0x28], $6
+            mov [rsp + 0x30], $7
+            mov [rsp + 0x38], $8
+            mov [rsp + 0x40], $9
+            mov [rsp + 0x48], $10
+            mov [rsp + 0x50], $11
+            mov [rsp + 0x58], $12
+            mov r10, rcx
+            syscall
+            add rsp, 0x60
+        ", "{rcx}"($p1), "{rdx}"($p2), "{r8}"($p3), "{r9}"($p4), "rn"($p5), "rn"($p6), "rn"($p7),
+        "rn"($p8), "rn"($p9), "rn"($p10), "rn"($p11))
+    };
     (#2 $id:ident, $command:expr, $($input:tt)*) => {{
         let index = match IDS {
             Some(ref ids) => ids.$id,
@@ -85,7 +208,8 @@ macro_rules! syscall {
         } as usize;
 
         let result: u32;
-        asm!(
+        // TODO: Upgrade to new `asm!` macro, see https://github.com/rust-lang/rfcs/pull/2873
+        llvm_asm!(
             $command :
             "={eax}"(result) :
             "{eax}"(index), $($input)* :
@@ -109,6 +233,39 @@ pub(crate) unsafe fn NtClose(
     syscall!(close, object)
 }
 
+/// Official documentation: [ntdll.NtCreateFile](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntcreatefile).
+#[allow(non_snake_case)]
+#[inline(always)]
+pub(crate) unsafe fn NtCreateFile(
+    handle: *mut crate::object::Handle,
+    // Specializations:
+    // - `crate::file::DirectoryAccessModes`
+    // - `crate::file::FileAccessModes`
+    access_modes: u32,
+    object_attributes: &crate::object::Attributes,
+    io_status_block: *mut crate::file::IoStatusBlock,
+    allocation_size: Option<&u64>,
+    attributes: crate::file::Attributes,
+    share_modes: crate::file::ShareModes,
+    // Specializations:
+    // - `crate::file::CreationDispositionDirectoryNtDll`
+    // - `crate::file::CreationDispositionFileNtDll`
+    creation_disposition: u32,
+    creation_options: crate::file::CreationOptions,
+    extended_attributes: Option<&crate::file::ntfs::ExtendedAttributesInformation>,
+    extended_attributes_size: u32
+) -> crate::error::NtStatusResult {
+    let attributes = *(&attributes as *const _ as *const u32) as usize;
+    let share_modes = *(&share_modes as *const _ as *const u32) as usize;
+    let creation_options = *(&creation_options as *const _ as *const u32) as usize;
+
+    syscall!(create_file,
+        handle, access_modes, object_attributes, io_status_block, allocation_size, attributes,
+        share_modes, creation_disposition, creation_options, extended_attributes,
+        extended_attributes_size
+    )
+}
+
 /// Official documentation: [ntdll.NtOpenProcess](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-ntopenprocess).
 #[allow(non_snake_case)]
 #[inline(always)]
@@ -118,9 +275,19 @@ pub(crate) unsafe fn NtOpenProcess(
     attributes: &crate::object::Attributes,
     client_id: &crate::process::ClientId
 ) -> crate::error::NtStatusResult {
-    let access_modes = *(&access_modes as *const _ as *const u32);
+    let access_modes = *(&access_modes as *const _ as *const u32) as usize;
 
     syscall!(open_process, handle, access_modes, attributes, client_id)
+}
+
+/// Official documentation: [ntdll.NtQueryFullAttributesFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwqueryfullattributesfile).
+#[allow(non_snake_case)]
+#[inline(always)]
+pub(crate) unsafe fn NtQueryFullAttributesFile(
+    attributes: &crate::object::Attributes,
+    information: *mut crate::file::info::BasicNtDll
+) -> crate::error::NtStatusResult {
+    syscall!(query_full_attributes_file, attributes, information)
 }
 
 /// Official documentation: [ntdll.NtQueryInformationProcess](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationprocess).
