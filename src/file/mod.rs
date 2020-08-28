@@ -5,10 +5,15 @@ pub mod ntfs;
 
 use enum_extensions::{FromPrimitive, Iterator};
 
-/// Official documentation: [FILE_ATTRIBUTE_* & FILE_FLAG_* enums](https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew).
-#[derive(Copy, Clone, Eq, PartialEq)]
-#[repr(C)]
-pub struct Attributes(bitfield::BitField32);
+bitfield::bit_field!(
+    /// Official documentation: [FILE_ATTRIBUTE_* & FILE_FLAG_* enums](https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew).
+    ///
+    /// Official documentation: [FILE_ATTRIBUTE_* enum](https://docs.microsoft.com/en-us/windows/win32/fileio/file-attribute-constants).
+    #[derive(Copy, Clone, Eq, PartialEq)]
+    pub Attributes: u32;
+    flags:
+        pub has + pub set: Attribute
+);
 
 // TODO: Security flags for Pipes.
 /// Official documentation: [FILE_ATTRIBUTE_* & FILE_FLAG_* enums](https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew).
@@ -49,28 +54,6 @@ pub enum Attribute {
     Overlapped,
     WriteThrough
 }
-
-impl Attributes {
-    /// Creates a new instance.
-    #[inline(always)]
-    pub const fn new() -> Self {
-        Self(bitfield::BitField32::new())
-    }
-
-    /// Returns a boolean value whether the specified flag is set.
-    #[inline(always)]
-    pub const fn get(&self, attribute: Attribute) -> bool {
-        self.0.bit(attribute as u8)
-    }
-
-    /// Returns a modified variant with the flag set to the specified value.
-    #[inline(always)]
-    pub const fn set(&self, attribute: Attribute, value: bool) -> Self {
-        Self(self.0.set_bit(attribute as u8, value))
-    }
-}
-
-bitfield::impl_debug!(Attributes, Attribute::iter());
 
 /// Official documentation: [GET_FILEEX_INFO_LEVELS enum](https://docs.microsoft.com/en-us/windows/win32/api/minwinbase/ne-minwinbase-get_fileex_info_levels).
 #[derive(Copy, Clone, Debug, Iterator)]
@@ -124,14 +107,19 @@ pub enum CreationDispositionFileNtDll {
     TruncateAlways
 }
 
-/// Official documentation: [CreationOptions enum](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntcreatefile).
-#[derive(Copy, Clone, Eq, PartialEq)]
-#[repr(C)]
-pub struct CreationOptions(bitfield::BitField32);
+bitfield::bit_field!(
+    /// Official documentation: [CreationOptions enum](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntcreatefile).
+    ///
+    /// Unofficial documentation: [FILE_* enum](https://github.com/processhacker/processhacker/blob/master/phnt/include/ntioapi.h).
+    #[derive(Copy, Clone, Eq, PartialEq)]
+    pub CreationOptions: u32;
+    flags:
+        pub has + pub set: CreationOption
+);
 
 /// Official documentation: [CreationOptions enum](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntcreatefile).
 ///
-/// Unofficial documentation: [FILE_* enum](https://github.com/processhacker/processhacker/blob/master/phnt/include/ntioapi.h)
+/// Unofficial documentation: [FILE_* enum](https://github.com/processhacker/processhacker/blob/master/phnt/include/ntioapi.h).
 #[allow(missing_docs)]
 #[derive(Copy, Clone, Debug, Iterator)]
 #[repr(u8)]
@@ -160,22 +148,6 @@ pub enum CreationOption {
     OpenNoRecall,
     OpenForFreeSpaceQuery
 }
-
-impl CreationOptions {
-    /// Creates a new instance.
-    #[inline(always)]
-    pub const fn new() -> Self {
-        Self(bitfield::BitField32::new())
-    }
-
-    /// Returns a modified variant with the flag set to the specified value.
-    #[inline(always)]
-    pub const fn set(&self, option: CreationOption, value: bool) -> Self {
-        Self(self.0.set_bit(option as u8, value))
-    }
-}
-
-bitfield::impl_debug!(CreationOptions, CreationOption::iter());
 
 /// Stores the necessary information to manipulate a file system directory object.
 pub struct Directory(pub(crate) crate::object::Handle);
@@ -223,7 +195,7 @@ impl Directory {
                 match status {
                     // If it already exists, check if it is a directory or a file.
                     Some(status) if status == crate::error::StatusValue::AlreadyExists.into() => {
-                        if !Object::attributes_kernel32(path)?.get(Attribute::Directory) {
+                        if !Object::attributes_kernel32(path)?.has(Attribute::Directory) {
                             return Err(crate::error::StatusValue::BadFileType.into());
                         }
                     },
@@ -240,7 +212,7 @@ impl Directory {
 
             CreationDispositionDirectoryKernel32::OpenExisting => {
                 // If it already exists, check if it is a directory or a file.
-                if !Object::attributes_kernel32(path)?.get(Attribute::Directory) {
+                if !Object::attributes_kernel32(path)?.has(Attribute::Directory) {
                     return Err(crate::error::StatusValue::BadFileType.into());
                 }
 
@@ -314,10 +286,14 @@ impl core::ops::Drop for Directory {
     }
 }
 
-/// Official documentation: [File Security and Access Rights](https://docs.microsoft.com/en-us/windows/win32/fileio/file-security-and-access-rights).
-#[derive(Copy, Clone, Eq, PartialEq)]
-#[repr(C)]
-pub struct DirectoryAccessModes(bitfield::BitField32);
+bitfield::bit_field!(
+    /// Official documentation: [File Security and Access Rights](https://docs.microsoft.com/en-us/windows/win32/fileio/file-security-and-access-rights).
+    #[derive(Copy, Clone, Eq, PartialEq)]
+    pub DirectoryAccessModes: u32;
+    flags:
+        pub has          + pub set:          DirectoryAccessMode,
+        pub has_standard + pub set_standard: crate::object::AccessMode
+);
 
 /// Official documentation: [File Security and Access Rights](https://docs.microsoft.com/en-us/windows/win32/fileio/file-security-and-access-rights).
 #[allow(missing_docs)]
@@ -333,56 +309,6 @@ pub enum DirectoryAccessMode {
     DeleteChild,
     ReadAttributes,
     WriteAttributes
-}
-
-impl DirectoryAccessModes {
-    /// Creates a new instance.
-    #[inline(always)]
-    pub const fn new() -> Self {
-        Self(bitfield::BitField32::new())
-    }
-
-    /// Returns a modified variant with the flag set to the specified value.
-    #[inline(always)]
-    pub const fn set(&self, mode: DirectoryAccessMode, value: bool) -> Self {
-        Self(self.0.set_bit(mode as u8, value))
-    }
-
-    /// Returns a modified variant with the standard flag set to the specified value.
-    #[inline(always)]
-    pub const fn set_standard(&self, mode: crate::object::AccessMode, value: bool) -> Self {
-        Self(self.0.set_bit(mode as u8 + 16, value))
-    }
-}
-
-impl core::fmt::Debug for DirectoryAccessModes {
-    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-        let mut formatted = alloc::string::String::new();
-
-        for flag in DirectoryAccessMode::iter() {
-            if self.0.bit(*flag as u8) {
-                if formatted.len() > 0 {
-                    formatted.push_str(" | ");
-                }
-                formatted.push_str(&alloc::format!("{:?}", flag));
-            }
-        }
-
-        for flag in crate::object::AccessMode::iter() {
-            if self.0.bit(*flag as u8 + 16) {
-                if formatted.len() > 0 {
-                    formatted.push_str(" | ");
-                }
-                formatted.push_str(&alloc::format!("{:?}", flag));
-            }
-        }
-
-        if formatted.len() == 0 {
-            formatted.push('-');
-        }
-
-        f.write_str(formatted.as_ref())
-    }
 }
 
 /// Stores the necessary information to manipulate a file system file object.
@@ -405,7 +331,7 @@ impl File {
         template: Option<&Object>
     ) -> Result<(Self, Option<crate::error::Status>), crate::error::Status> {
         if let Ok(attributes) = Object::attributes_kernel32(path) {
-            if attributes.get(Attribute::Directory) {
+            if attributes.has(Attribute::Directory) {
                 return Err(crate::error::StatusValue::BadFileType.into());
             }
         }
@@ -482,10 +408,14 @@ impl core::ops::Drop for File {
     }
 }
 
-/// Official documentation: [File Security and Access Rights](https://docs.microsoft.com/en-us/windows/win32/fileio/file-security-and-access-rights).
-#[derive(Copy, Clone, Eq, PartialEq)]
-#[repr(C)]
-pub struct FileAccessModes(bitfield::BitField32);
+bitfield::bit_field!(
+    /// Official documentation: [File Security and Access Rights](https://docs.microsoft.com/en-us/windows/win32/fileio/file-security-and-access-rights).
+    #[derive(Copy, Clone, Eq, PartialEq)]
+    pub FileAccessModes: u32;
+    flags:
+        pub has          + pub set:          FileAccessMode,
+        pub has_standard + pub set_standard: crate::object::AccessMode
+);
 
 /// Official documentation: [File Security and Access Rights](https://docs.microsoft.com/en-us/windows/win32/fileio/file-security-and-access-rights).
 #[allow(missing_docs)]
@@ -500,56 +430,6 @@ pub enum FileAccessMode {
     Execute,
     ReadAttributes = 7,
     WriteAttributes
-}
-
-impl FileAccessModes {
-    /// Creates a new instance.
-    #[inline(always)]
-    pub const fn new() -> Self {
-        Self(bitfield::BitField32::new())
-    }
-
-    /// Returns a modified variant with the flag set to the specified value.
-    #[inline(always)]
-    pub const fn set(&self, mode: FileAccessMode, value: bool) -> Self {
-        Self(self.0.set_bit(mode as u8, value))
-    }
-
-    /// Returns a modified variant with the standard flag set to the specified value.
-    #[inline(always)]
-    pub const fn set_standard(&self, mode: crate::object::AccessMode, value: bool) -> Self {
-        Self(self.0.set_bit(mode as u8 + 16, value))
-    }
-}
-
-impl core::fmt::Debug for FileAccessModes {
-    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-        let mut formatted = alloc::string::String::new();
-
-        for flag in FileAccessMode::iter() {
-            if self.0.bit(*flag as u8) {
-                if formatted.len() > 0 {
-                    formatted.push_str(" | ");
-                }
-                formatted.push_str(&alloc::format!("{:?}", flag));
-            }
-        }
-
-        for flag in crate::object::AccessMode::iter() {
-            if self.0.bit(*flag as u8 + 16) {
-                if formatted.len() > 0 {
-                    formatted.push_str(" | ");
-                }
-                formatted.push_str(&alloc::format!("{:?}", flag));
-            }
-        }
-
-        if formatted.len() == 0 {
-            formatted.push('-');
-        }
-
-        f.write_str(formatted.as_ref())
-    }
 }
 
 /// Official documentation: [NtCreateFile status block results](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntcreatefile).
@@ -765,10 +645,13 @@ impl Object {
 #[repr(C)]
 pub(crate) struct Overlapped(u8);
 
-/// Official documentation: [FILE_SHARE_* enum](https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew).
-#[derive(Copy, Clone, Eq, PartialEq)]
-#[repr(C)]
-pub struct ShareModes(bitfield::BitField32);
+bitfield::bit_field!(
+    /// Official documentation: [FILE_SHARE_* enum](https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew).
+    #[derive(Copy, Clone, Eq, PartialEq)]
+    pub ShareModes: u32;
+    flags:
+        pub has + pub set: ShareMode
+);
 
 /// Official documentation: [FILE_SHARE_* enum](https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew).
 #[allow(missing_docs)]
@@ -781,12 +664,6 @@ pub enum ShareMode {
 }
 
 impl ShareModes {
-    /// Creates a new instance.
-    #[inline(always)]
-    pub const fn new() -> Self {
-        Self(bitfield::BitField32::new())
-    }
-
     /// Creates a new instance with all flags set to `true`.
     #[inline(always)]
     pub const fn all() -> Self {
@@ -795,21 +672,7 @@ impl ShareModes {
             .set(ShareMode::Write, true)
             .set(ShareMode::Delete, true)
     }
-
-    /// Returns a boolean value whether the specified flag is set.
-    #[inline(always)]
-    pub const fn get(&self, mode: ShareMode) -> bool {
-        self.0.bit(mode as u8)
-    }
-
-    /// Returns a modified variant with the flag set to the specified value.
-    #[inline(always)]
-    pub const fn set(&self, mode: ShareMode, value: bool) -> Self {
-        Self(self.0.set_bit(mode as u8, value))
-    }
 }
-
-bitfield::impl_debug!(ShareModes, ShareMode::iter());
 
 /// Official documentation: [FILETIME struct](https://docs.microsoft.com/en-us/windows/win32/api/minwinbase/ns-minwinbase-filetime).
 ///
@@ -2081,29 +1944,29 @@ mod tests {
         let path = String::from("C:\\\0");
         let attributes = Object::attributes_kernel32(path.as_ref()).unwrap();
 
-        assert!(!attributes.get(Attribute::ReadOnly));
-        assert!(attributes.get(Attribute::Directory));
+        assert!(!attributes.has(Attribute::ReadOnly));
+        assert!(attributes.has(Attribute::Directory));
 
         // Absolute file.
         let path = String::from("C:\\Windows\\System32\\ntdll.dll\0");
         let attributes = Object::attributes_kernel32(path.as_ref()).unwrap();
 
-        assert!(!attributes.get(Attribute::ReadOnly));
-        assert!(!attributes.get(Attribute::Directory));
+        assert!(!attributes.has(Attribute::ReadOnly));
+        assert!(!attributes.has(Attribute::Directory));
 
         // Relative directory.
         let path = String::from("src\\\0");
         let attributes = Object::attributes_kernel32(path.as_ref()).unwrap();
 
-        assert!(!attributes.get(Attribute::ReadOnly));
-        assert!(attributes.get(Attribute::Directory));
+        assert!(!attributes.has(Attribute::ReadOnly));
+        assert!(attributes.has(Attribute::Directory));
 
         // Relative file.
         let path = String::from("Cargo.toml\0");
         let attributes = Object::attributes_kernel32(path.as_ref()).unwrap();
 
-        assert!(!attributes.get(Attribute::ReadOnly));
-        assert!(!attributes.get(Attribute::Directory));
+        assert!(!attributes.has(Attribute::ReadOnly));
+        assert!(!attributes.has(Attribute::Directory));
     }
 
     #[test]
@@ -2132,8 +1995,8 @@ mod tests {
         let object_attributes = crate::object::Attributes::from_name(&path);
         let attributes = Object::attributes_ntdll(&object_attributes).unwrap();
 
-        assert!(!attributes.get(Attribute::ReadOnly));
-        assert!(attributes.get(Attribute::Directory));
+        assert!(!attributes.has(Attribute::ReadOnly));
+        assert!(attributes.has(Attribute::Directory));
 
         // File.
         let path = String::from(r"\??\C:\Windows\System32\ntdll.dll");
@@ -2141,8 +2004,8 @@ mod tests {
         let object_attributes = crate::object::Attributes::from_name(&path);
         let attributes = Object::attributes_ntdll(&object_attributes).unwrap();
 
-        assert!(!attributes.get(Attribute::ReadOnly));
-        assert!(!attributes.get(Attribute::Directory));
+        assert!(!attributes.has(Attribute::ReadOnly));
+        assert!(!attributes.has(Attribute::Directory));
     }
 
     #[test]
@@ -2173,8 +2036,8 @@ mod tests {
         let object_attributes = crate::object::Attributes::from_name(&path);
         let attributes = Object::attributes_syscall(&object_attributes).unwrap();
 
-        assert!(!attributes.get(Attribute::ReadOnly));
-        assert!(attributes.get(Attribute::Directory));
+        assert!(!attributes.has(Attribute::ReadOnly));
+        assert!(attributes.has(Attribute::Directory));
 
         // File.
         let path = String::from(r"\??\C:\Windows\System32\ntdll.dll");
@@ -2182,8 +2045,8 @@ mod tests {
         let object_attributes = crate::object::Attributes::from_name(&path);
         let attributes = Object::attributes_syscall(&object_attributes).unwrap();
 
-        assert!(!attributes.get(Attribute::ReadOnly));
-        assert!(!attributes.get(Attribute::Directory));
+        assert!(!attributes.has(Attribute::ReadOnly));
+        assert!(!attributes.has(Attribute::Directory));
     }
 
     #[test]
@@ -2206,29 +2069,29 @@ mod tests {
         let path = String::from("C:\\\0");
         let info = Object::information_kernel32(path.as_ref()).unwrap();
 
-        assert!(!info.attributes.get(Attribute::ReadOnly));
-        assert!(info.attributes.get(Attribute::Directory));
+        assert!(!info.attributes.has(Attribute::ReadOnly));
+        assert!(info.attributes.has(Attribute::Directory));
 
         // Absolute file.
         let path = String::from("C:\\Windows\\System32\\ntdll.dll\0");
         let info = Object::information_kernel32(path.as_ref()).unwrap();
 
-        assert!(!info.attributes.get(Attribute::ReadOnly));
-        assert!(!info.attributes.get(Attribute::Directory));
+        assert!(!info.attributes.has(Attribute::ReadOnly));
+        assert!(!info.attributes.has(Attribute::Directory));
 
         // Relative directory.
         let path = String::from("src\\\0");
         let info = Object::information_kernel32(path.as_ref()).unwrap();
 
-        assert!(!info.attributes.get(Attribute::ReadOnly));
-        assert!(info.attributes.get(Attribute::Directory));
+        assert!(!info.attributes.has(Attribute::ReadOnly));
+        assert!(info.attributes.has(Attribute::Directory));
 
         // Relative file.
         let path = String::from("Cargo.toml\0");
         let info = Object::information_kernel32(path.as_ref()).unwrap();
 
-        assert!(!info.attributes.get(Attribute::ReadOnly));
-        assert!(!info.attributes.get(Attribute::Directory));
+        assert!(!info.attributes.has(Attribute::ReadOnly));
+        assert!(!info.attributes.has(Attribute::Directory));
     }
 
     #[test]
@@ -2257,8 +2120,8 @@ mod tests {
         let object_attributes = crate::object::Attributes::from_name(&path);
         let info = Object::information_ntdll(&object_attributes).unwrap();
 
-        assert!(!info.attributes.get(Attribute::ReadOnly));
-        assert!(info.attributes.get(Attribute::Directory));
+        assert!(!info.attributes.has(Attribute::ReadOnly));
+        assert!(info.attributes.has(Attribute::Directory));
 
         // File.
         let path = String::from(r"\??\C:\Windows\System32\ntdll.dll");
@@ -2266,8 +2129,8 @@ mod tests {
         let object_attributes = crate::object::Attributes::from_name(&path);
         let info = Object::information_ntdll(&object_attributes).unwrap();
 
-        assert!(!info.attributes.get(Attribute::ReadOnly));
-        assert!(!info.attributes.get(Attribute::Directory));
+        assert!(!info.attributes.has(Attribute::ReadOnly));
+        assert!(!info.attributes.has(Attribute::Directory));
     }
 
     #[test]
@@ -2298,8 +2161,8 @@ mod tests {
         let object_attributes = crate::object::Attributes::from_name(&path);
         let info = Object::information_syscall(&object_attributes).unwrap();
 
-        assert!(!info.attributes.get(Attribute::ReadOnly));
-        assert!(info.attributes.get(Attribute::Directory));
+        assert!(!info.attributes.has(Attribute::ReadOnly));
+        assert!(info.attributes.has(Attribute::Directory));
 
         // File.
         let path = String::from(r"\??\C:\Windows\System32\ntdll.dll");
@@ -2307,7 +2170,7 @@ mod tests {
         let object_attributes = crate::object::Attributes::from_name(&path);
         let info = Object::information_syscall(&object_attributes).unwrap();
 
-        assert!(!info.attributes.get(Attribute::ReadOnly));
-        assert!(!info.attributes.get(Attribute::Directory));
+        assert!(!info.attributes.has(Attribute::ReadOnly));
+        assert!(!info.attributes.has(Attribute::Directory));
     }
 }

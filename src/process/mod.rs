@@ -6,10 +6,16 @@ pub mod thread;
 use alloc::vec::Vec;
 use enum_extensions::Iterator;
 
-/// Official documentation: [Process Security and Access Rights](https://docs.microsoft.com/en-us/windows/win32/procthread/process-security-and-access-rights).
-#[derive(Copy, Clone, Eq, PartialEq)]
-#[repr(C)]
-pub struct AccessModes(bitfield::BitField32);
+bitfield::bit_field!(
+    /// Official documentation: [Process Security and Access Rights](https://docs.microsoft.com/en-us/windows/win32/procthread/process-security-and-access-rights).
+    ///
+    /// Unofficial documentation: [Process Hacker - ntpsapi.h](https://github.com/processhacker/processhacker/blob/master/phnt/include/ntpsapi.h).
+    #[derive(Copy, Clone, Eq, PartialEq)]
+    pub AccessModes: u32;
+    flags:
+        pub has          + pub set:          AccessMode,
+        pub has_standard + pub set_standard: crate::object::AccessMode
+);
 
 /// Official documentation: [Process Security and Access Rights](https://docs.microsoft.com/en-us/windows/win32/procthread/process-security-and-access-rights).
 ///
@@ -31,56 +37,6 @@ pub enum AccessMode {
     QueryInformation,
     SuspendResume,
     QueryLimitedInformation
-}
-
-impl AccessModes {
-    /// Creates a new instance.
-    #[inline(always)]
-    pub const fn new() -> Self {
-        Self(bitfield::BitField32::new())
-    }
-
-    /// Returns a modified variant with the flag set to the specified value.
-    #[inline(always)]
-    pub const fn set(&self, mode: AccessMode, value: bool) -> Self {
-        Self(self.0.set_bit(mode as u8, value))
-    }
-
-    /// Returns a modified variant with the standard flag set to the specified value.
-    #[inline(always)]
-    pub const fn set_standard(&self, mode: crate::object::AccessMode, value: bool) -> Self {
-        Self(self.0.set_bit(mode as u8 + 16, value))
-    }
-}
-
-impl core::fmt::Debug for AccessModes {
-    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-        let mut formatted = alloc::string::String::new();
-
-        for flag in AccessMode::iter() {
-            if self.0.bit(*flag as u8) {
-                if formatted.len() > 0 {
-                    formatted.push_str(" | ");
-                }
-                formatted.push_str(&alloc::format!("{:?}", flag));
-            }
-        }
-
-        for flag in crate::object::AccessMode::iter() {
-            if self.0.bit(*flag as u8 + 16) {
-                if formatted.len() > 0 {
-                    formatted.push_str(" | ");
-                }
-                formatted.push_str(&alloc::format!("{:?}", flag));
-            }
-        }
-
-        if formatted.len() == 0 {
-            formatted.push('-');
-        }
-
-        f.write_str(formatted.as_ref())
-    }
 }
 
 /// Official documentation: [CLIENT_ID struct](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/a11e7129-685b-4535-8d37-21d4596ac057).

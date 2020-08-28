@@ -8,6 +8,12 @@ use enum_extensions::{FromPrimitive, Iterator};
 pub struct CpuAffinityMask(bitfield::BitField64);
 
 impl CpuAffinityMask {
+    /// Creates a new instance with no cpu affinities set.
+    #[inline(always)]
+    pub const fn new() -> Self {
+        Self(bitfield::BitField64::new())
+    }
+
     /// Returns `true` if the affinity for the cpu is set, `false` otherwise. `index` must be < 64.
     #[inline(always)]
     pub const fn cpu(&self, index: u8) -> bool {

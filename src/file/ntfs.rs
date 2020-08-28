@@ -2,12 +2,15 @@
 
 use enum_extensions::Iterator;
 
-/// Official documentation: [FILE_* enum](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_file_full_ea_information).
-///
-/// Unofficial documentation: [FILE_* enum](https://github.com/processhacker/phnt/blob/master/ntioapi.h).
-#[derive(Copy, Clone, Eq, PartialEq)]
-#[repr(C)]
-pub struct ExtendedAttributeFlags(bitfield::BitField8);
+bitfield::bit_field!(
+    /// Official documentation: [FILE_* enum](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_file_full_ea_information).
+    ///
+    /// Unofficial documentation: [FILE_* enum](https://github.com/processhacker/phnt/blob/master/ntioapi.h).
+    #[derive(Copy, Clone, Eq, PartialEq)]
+    pub ExtendedAttributeFlags: u8;
+    flags:
+        pub has + pub set: ExtendedAttributeFlag
+);
 
 /// Official documentation: [FILE_* enum](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_file_full_ea_information).
 ///
@@ -18,22 +21,6 @@ pub struct ExtendedAttributeFlags(bitfield::BitField8);
 pub enum ExtendedAttributeFlag {
     NeedKnowledge = 7
 }
-
-impl ExtendedAttributeFlags {
-    /// Creates a new instance.
-    #[inline(always)]
-    pub const fn new() -> Self {
-        Self(bitfield::BitField8::new())
-    }
-
-    /// Returns a modified variant with the flag set to the specified value.
-    #[inline(always)]
-    pub const fn set(&self, flag: ExtendedAttributeFlag, value: bool) -> Self {
-        Self(self.0.set_bit(flag as u8, value))
-    }
-}
-
-bitfield::impl_debug!(ExtendedAttributeFlags, ExtendedAttributeFlag::iter());
 
 // TODO: Implement creation.
 /// Official documentation: [FILE_FULL_EA_INFORMATION struct](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_file_full_ea_information).

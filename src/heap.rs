@@ -120,12 +120,15 @@ unsafe impl core::alloc::GlobalAlloc for SystemHeapNtDll {
 #[repr(transparent)]
 pub(crate) struct SystemHeapHandle(core::num::NonZeroUsize);
 
-/// Official documentation: [kernel32.HeapAlloc flags](https://docs.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapalloc).
-///
-/// Official documentation: [kernel32.HeapCreate flags](https://docs.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapcreate).
-#[derive(Copy, Clone, Eq, PartialEq)]
-#[repr(C)]
-pub(crate) struct SystemHeapFlags(bitfield::BitField32);
+bitfield::bit_field!(
+    /// Official documentation: [kernel32.HeapAlloc flags](https://docs.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapalloc).
+    ///
+    /// Official documentation: [kernel32.HeapCreate flags](https://docs.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapcreate).
+    #[derive(Copy, Clone, Eq, PartialEq)]
+    pub(crate) SystemHeapFlags: u32;
+    flags:
+        pub(crate) has + pub(crate) set: SystemHeapFlag
+);
 
 /// Official documentation: [kernel32.HeapAlloc flags](https://docs.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapalloc).
 ///
@@ -155,19 +158,3 @@ pub(crate) enum SystemHeapFlag {
     #[allow(unused)]
     CreateEnableExecute
 }
-
-impl SystemHeapFlags {
-    /// Creates a new instance.
-    #[inline(always)]
-    pub(crate) const fn new() -> Self {
-        Self(bitfield::BitField32::new())
-    }
-
-    /// Returns a modified variant with the flag set to the specified value.
-    #[inline(always)]
-    pub(crate) const fn set(&self, flag: SystemHeapFlag, value: bool) -> Self {
-        Self(self.0.set_bit(flag as u8, value))
-    }
-}
-
-bitfield::impl_debug!(SystemHeapFlags, SystemHeapFlag::iter());

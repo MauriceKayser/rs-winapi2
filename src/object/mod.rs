@@ -11,13 +11,13 @@ pub mod security;
 #[derive(Copy, Clone, Debug, Iterator)]
 #[repr(u8)]
 pub enum AccessMode {
-    Delete,
+    Delete = 16,
     ReadControl,
     WriteDac,
     WriteOwner,
     Synchronize,
-    SystemSecurity = 8,
-    GenericAll = 12,
+    SystemSecurity = 24,
+    GenericAll = 28,
     GenericExecute,
     GenericWrite,
     GenericRead
@@ -80,10 +80,13 @@ pub enum AttributeDirectory<'a> {
     Object(&'a Directory)
 }
 
-/// Official documentation: [OBJECT_ATTRIBUTES struct](https://docs.microsoft.com/en-us/windows/win32/api/ntdef/ns-ntdef-_object_attributes).
-#[derive(Copy, Clone, Eq, PartialEq)]
-#[repr(C)]
-pub struct AttributeFlags(bitfield::BitField32);
+bitfield::bit_field!(
+    /// Official documentation: [OBJECT_ATTRIBUTES struct](https://docs.microsoft.com/en-us/windows/win32/api/ntdef/ns-ntdef-_object_attributes).
+    #[derive(Copy, Clone, Eq, PartialEq)]
+    pub AttributeFlags: u32;
+    flags:
+        pub has + pub set: AttributeFlag
+);
 
 /// Official documentation: [OBJECT_ATTRIBUTES struct](https://docs.microsoft.com/en-us/windows/win32/api/ntdef/ns-ntdef-_object_attributes).
 #[allow(missing_docs)]
@@ -100,22 +103,6 @@ pub enum AttributeFlag {
     ForceAccessCheck,
     IgnoreImpersonatedDeviceMap
 }
-
-impl AttributeFlags {
-    /// Creates a new instance.
-    #[inline(always)]
-    pub const fn new() -> Self {
-        Self(bitfield::BitField32::new())
-    }
-
-    /// Returns a modified variant with the flag set to the specified value.
-    #[inline(always)]
-    pub const fn set(&self, flag: AttributeFlag, value: bool) -> Self {
-        Self(self.0.set_bit(flag as u8, value))
-    }
-}
-
-bitfield::impl_debug!(AttributeFlags, AttributeFlag::iter());
 
 /// Stores the necessary information to manipulate an object directory in the object manager
 /// namespace.

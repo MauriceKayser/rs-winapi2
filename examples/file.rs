@@ -22,7 +22,7 @@ fn calc_attributes() {
     let object_attributes = winapi2::object::Attributes::from_name(&file_path_calc);
 
     let attributes = Object::attributes_syscall(&object_attributes).unwrap();
-    winapi2::println!("{:?}", &attributes);
+    winapi2::println!("{}", &attributes);
 }
 
 fn calc_information() {
