@@ -20,13 +20,13 @@ extern "system" {
         // - `crate::file::DirectoryAccessModes`
         // - `crate::file::FileAccessModes`
         access_modes: u32,
-        share_modes: crate::file::ShareModes,
+        share_modes: crate::io::file::ShareModes,
         security_descriptor: Option<&crate::object::security::Descriptor>,
         // Specializations:
         // - `crate::file::CreationDispositionDirectoryKernel32`
         // - `crate::file::CreationDispositionFileKernel32`
         creation_disposition: u32,
-        attributes: crate::file::Attributes,
+        attributes: crate::io::file::Attributes,
         template: Option<crate::object::Handle>
     ) -> crate::object::Handle;
 
@@ -40,7 +40,7 @@ extern "system" {
     /// Official documentation: [kernel32.GetFileAttributesExW](https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfileattributesexw).
     pub(crate) fn GetFileAttributesExW(
         path: *const crate::string::WideChar,
-        level: crate::file::AttributeInfoLevel,
+        level: crate::io::file::AttributeInfoLevel,
         buffer: *mut u8
     ) -> crate::types::Boolean;
 
@@ -76,6 +76,15 @@ extern "system" {
         id: u32
     ) -> Option<crate::object::Handle>;
 
+    /// Official documentation: [kernel32.ReadFile](https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-readfile).
+    pub(crate) fn ReadFile(
+        file: crate::object::Handle,
+        buffer: *mut u8,
+        buffer_size: u32,
+        read_size: *mut u32,
+        overlapped: Option<&mut crate::io::Overlapped>
+    ) -> crate::types::Boolean;
+
     /// Official documentation: [kernel32.TerminateProcess](https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-terminateprocess).
     pub(crate) fn TerminateProcess(
         process: crate::object::Handle,
@@ -86,7 +95,7 @@ extern "system" {
     pub(crate) fn WriteConsoleW(
         output_handle: crate::object::Handle,
         buffer: *const crate::string::WideChar,
-        size: u32,
+        buffer_size: u32,
         written_size: *mut u32,
         _reserved: *const u8
     ) -> crate::types::Boolean;
@@ -95,8 +104,8 @@ extern "system" {
     pub(crate) fn WriteFile(
         file: crate::object::Handle,
         buffer: *const u8,
-        size: u32,
+        buffer_size: u32,
         written_size: *mut u32,
-        overlapped: *mut crate::file::Overlapped
+        overlapped: *mut crate::io::Overlapped
     ) -> crate::types::Boolean;
 }

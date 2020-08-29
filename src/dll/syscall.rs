@@ -9,6 +9,7 @@ pub struct Ids {
     pub query_full_attributes_file: u16,
     pub query_information_process: u16,
     pub query_system_information: u16,
+    pub read_file: u16,
     pub terminate_process: u16
 }
 
@@ -28,6 +29,7 @@ impl Ids {
                 query_full_attributes_file: 0xC0,
                 query_information_process: 0xB9,
                 query_system_information: 0x9D,
+                read_file: 0x08E,
                 terminate_process: 0x24
             });
         }
@@ -41,6 +43,7 @@ impl Ids {
                 query_full_attributes_file: 0x140,
                 query_information_process: 0x19,
                 query_system_information: 0x36,
+                read_file: 0x06,
                 terminate_process: 0x2C
             });
         }
@@ -58,6 +61,7 @@ impl Ids {
                 query_full_attributes_file: 0xC0,
                 query_information_process: 0xB9,
                 query_system_information: 0x9D,
+                read_file: 0x8E,
                 terminate_process: 0x24
             });
         }
@@ -71,6 +75,7 @@ impl Ids {
                 query_full_attributes_file: 0x146,
                 query_information_process: 0x19,
                 query_system_information: 0x36,
+                read_file: 0x06,
                 terminate_process: 0x2C
             });
         }
@@ -243,16 +248,16 @@ pub(crate) unsafe fn NtCreateFile(
     // - `crate::file::FileAccessModes`
     access_modes: u32,
     object_attributes: &crate::object::Attributes,
-    io_status_block: *mut crate::file::IoStatusBlock,
+    io_status_block: *mut crate::io::file::IoStatusBlock,
     allocation_size: Option<&u64>,
-    attributes: crate::file::Attributes,
-    share_modes: crate::file::ShareModes,
+    attributes: crate::io::file::Attributes,
+    share_modes: crate::io::file::ShareModes,
     // Specializations:
     // - `crate::file::CreationDispositionDirectoryNtDll`
     // - `crate::file::CreationDispositionFileNtDll`
     creation_disposition: u32,
-    creation_options: crate::file::CreationOptions,
-    extended_attributes: Option<&crate::file::ntfs::ExtendedAttributesInformation>,
+    creation_options: crate::io::file::CreationOptions,
+    extended_attributes: Option<&crate::io::file::ntfs::ExtendedAttributesInformation>,
     extended_attributes_size: u32
 ) -> crate::error::NtStatusResult {
     let attributes = *(&attributes as *const _ as *const u32) as usize;
@@ -285,7 +290,7 @@ pub(crate) unsafe fn NtOpenProcess(
 #[inline(always)]
 pub(crate) unsafe fn NtQueryFullAttributesFile(
     attributes: &crate::object::Attributes,
-    information: *mut crate::file::info::BasicNtDll
+    information: *mut crate::io::file::info::BasicNtDll
 ) -> crate::error::NtStatusResult {
     syscall!(query_full_attributes_file, attributes, information)
 }
@@ -311,8 +316,27 @@ pub(crate) unsafe fn NtQuerySystemInformation(
     buffer: *const u8,
     buffer_size: u32,
     return_size: Option<&u32>
-) -> Option<crate::error::NtStatus> {
+) -> crate::error::NtStatusResult {
     syscall!(query_system_information, information, buffer, buffer_size, return_size)
+}
+
+/// Official documentation [ntdll.NtReadFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntreadfile).
+#[allow(non_snake_case)]
+#[inline(always)]
+pub(crate) unsafe fn NtReadFile(
+    file: crate::object::Handle,
+    event: Option<crate::object::Handle>,
+    _apc_routine: *const u8,
+    _apc_context: *const u8,
+    io_status_block: *mut crate::io::file::IoStatusBlock,
+    buffer: *mut u8,
+    buffer_size: u32,
+    offset: Option<&u64>,
+    _key: Option<&u32>
+) -> crate::error::NtStatusResult {
+    syscall!(read_file,
+        file, event, _apc_routine, _apc_context, io_status_block, buffer, buffer_size, offset, _key
+    )
 }
 
 /// Official documentation: [ntdll.NtTerminateProcess](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-zwterminateprocess).

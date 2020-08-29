@@ -16,16 +16,16 @@ extern "system" {
         // - `crate::file::FileAccessModes`
         access_modes: u32,
         object_attributes: &crate::object::Attributes,
-        io_status_block: *mut crate::file::IoStatusBlock,
+        io_status_block: *mut crate::io::file::IoStatusBlock,
         allocation_size: Option<&u64>,
-        attributes: crate::file::Attributes,
-        share_modes: crate::file::ShareModes,
+        attributes: crate::io::file::Attributes,
+        share_modes: crate::io::file::ShareModes,
         // Specializations:
         // - `crate::file::CreationDispositionDirectoryNtDll`
         // - `crate::file::CreationDispositionFileNtDll`
         creation_disposition: u32,
-        creation_options: crate::file::CreationOptions,
-        extended_attributes: Option<&crate::file::ntfs::ExtendedAttributesInformation>,
+        creation_options: crate::io::file::CreationOptions,
+        extended_attributes: Option<&crate::io::file::ntfs::ExtendedAttributesInformation>,
         extended_attributes_size: u32
     ) -> crate::error::NtStatusResult;
 
@@ -40,7 +40,7 @@ extern "system" {
     /// Official documentation: [ntdll.NtQueryFullAttributesFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwqueryfullattributesfile).
     pub(crate) fn NtQueryFullAttributesFile(
         attributes: &crate::object::Attributes,
-        information: *mut crate::file::info::BasicNtDll
+        information: *mut crate::io::file::info::BasicNtDll
     ) -> crate::error::NtStatusResult;
 
     /// Official documentation: [ntdll.NtQueryInformationProcess](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationprocess).
@@ -58,7 +58,20 @@ extern "system" {
         buffer: *const u8,
         buffer_size: u32,
         return_size: Option<&u32>
-    ) -> Option<crate::error::NtStatus>;
+    ) -> crate::error::NtStatusResult;
+
+    /// Official documentation [ntdll.NtReadFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntreadfile).
+    pub(crate) fn NtReadFile(
+        file: crate::object::Handle,
+        event: Option<crate::object::Handle>,
+        _apc_routine: *const u8,
+        _apc_context: *const u8,
+        io_status_block: *mut crate::io::file::IoStatusBlock,
+        buffer: *mut u8,
+        buffer_size: u32,
+        offset: Option<&u64>,
+        _key: Option<&u32>
+    ) -> crate::error::NtStatusResult;
 
     /// Official documentation: [ntdll.NtTerminateProcess](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-zwterminateprocess).
     pub(crate) fn NtTerminateProcess(

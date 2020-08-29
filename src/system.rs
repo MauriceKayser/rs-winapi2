@@ -225,7 +225,7 @@ pub struct InformationProcess<'a> {
     pub hard_fault_count: u32,
     pub thread_count_high: u32,
     pub cycle_time: u64,
-    pub create_time: crate::file::Time,
+    pub create_time: crate::io::file::Time,
     pub user_time: i64,
     pub kernel_time: i64,
     image_name_: crate::string::StringW<'a>,
@@ -326,7 +326,7 @@ impl<'a> core::fmt::Debug for InformationProcess<'a> {
 pub struct InformationThread {
     pub kernel_time: i64,
     pub user_time: i64,
-    pub create_time: crate::file::Time,
+    pub create_time: crate::io::file::Time,
     pub wait_time: u32,
     pub start_address: usize,
     id_: crate::process::ClientId,

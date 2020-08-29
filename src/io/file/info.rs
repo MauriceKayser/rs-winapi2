@@ -4,10 +4,10 @@
 #[allow(missing_docs)]
 #[repr(C)]
 pub struct BasicKernel32 {
-    pub attributes: crate::file::Attributes,
-    pub creation_time: crate::file::Time,
-    pub last_access_time: crate::file::Time,
-    pub last_write_time: crate::file::Time,
+    pub attributes: crate::io::file::Attributes,
+    pub creation_time: crate::io::file::Time,
+    pub last_access_time: crate::io::file::Time,
+    pub last_write_time: crate::io::file::Time,
     file_size_high: u32,
     file_size_low: u32
 }
@@ -37,15 +37,15 @@ impl core::fmt::Debug for BasicKernel32 {
 #[derive(Debug)]
 #[repr(C)]
 pub struct BasicNtDll {
-    pub creation_time: crate::file::Time,
-    pub last_access_time: crate::file::Time,
-    pub last_write_time: crate::file::Time,
-    pub change_time: crate::file::Time,
+    pub creation_time: crate::io::file::Time,
+    pub last_access_time: crate::io::file::Time,
+    pub last_write_time: crate::io::file::Time,
+    pub change_time: crate::io::file::Time,
     /// The reserved space on disk (>= `end_of_file`).
     pub allocation_size: u64,
     /// The amount of stored bytes on disk ("file size").
     pub end_of_file: u64,
-    pub attributes: crate::file::Attributes
+    pub attributes: crate::io::file::Attributes
 }
 
 #[cfg(test)]
@@ -55,14 +55,14 @@ mod test {
     #[test]
     fn basic() {
         let kernel32_path = String::from("C:\\Windows\\notepad.exe\0");
-        let kernel32 = crate::file::Object::information_kernel32(
+        let kernel32 = crate::io::file::Object::information_kernel32(
             kernel32_path.as_ref()
         ).unwrap();
 
         let ntdll_path = String::from(r"\??\C:\Windows\notepad.exe");
         let ntdll_path = StringW::from(ntdll_path.as_ref());
         let object_attributes = crate::object::Attributes::from_name(&ntdll_path);
-        let ntdll = crate::file::Object::information_ntdll(&object_attributes).unwrap();
+        let ntdll = crate::io::file::Object::information_ntdll(&object_attributes).unwrap();
 
         assert_eq!(ntdll.creation_time, kernel32.creation_time);
         assert_eq!(ntdll.last_access_time, kernel32.last_access_time);

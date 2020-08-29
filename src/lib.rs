@@ -86,11 +86,12 @@ extern crate alloc;
 
 #[macro_use]
 pub        mod console;
-pub(crate) mod conversion;
+// TODO: Set to `pub(crate)` once array lengths support generic parameters (see [#43408](https://github.com/rust-lang/rust/issues/43408)).
+pub        mod conversion;
 pub(crate) mod dll;
 pub        mod error;
-pub        mod file;
 pub        mod heap;
+pub        mod io;
 pub        mod object;
 pub        mod process;
 pub        mod string;
@@ -100,9 +101,9 @@ pub(crate) mod types;
 // Export types.
 
 pub use console::Console;
-pub use file::{Directory, File};
 #[cfg(not(winapi = "syscall"))]
 pub use heap::Heap;
+pub use io::file::{Directory, File};
 pub use process::Process;
 pub use dll::syscall::{
     Ids as SyscallIds,

@@ -198,6 +198,8 @@ impl Process {
         { Self::information_syscall(self).map_err(|e| crate::error::Error::NtStatus(e)) }
     }
 
+    /// Official documentation: [PROCESS_BASIC_INFORMATION struct](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationprocess#process_basic_information).
+    ///
     /// Returns basic information about the specified process.
     #[inline(always)]
     pub fn information_kernel32(&self) -> Result<info::Basic, crate::error::Status> {
@@ -205,6 +207,8 @@ impl Process {
         Err(crate::error::StatusValue::CallNotImplemented.into())
     }
 
+    /// Official documentation: [PROCESS_BASIC_INFORMATION struct](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationprocess#process_basic_information).
+    ///
     /// Returns basic information about the specified process.
     #[inline(always)]
     pub fn information_ntdll(&self) -> Result<info::Basic, crate::error::NtStatus> {
@@ -225,6 +229,8 @@ impl Process {
         }
     }
 
+    /// Official documentation: [PROCESS_BASIC_INFORMATION struct](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationprocess#process_basic_information).
+    ///
     /// Returns the process identifier of the specified process.
     #[inline(always)]
     pub fn information_syscall(&self) -> Result<info::Basic, crate::error::NtStatus> {

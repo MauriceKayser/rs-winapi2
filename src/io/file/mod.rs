@@ -238,7 +238,7 @@ impl Directory {
         share_modes: ShareModes,
         creation_disposition: CreationDispositionDirectoryNtDll,
         creation_options: CreationOptions,
-        extended_attributes: Option<(&crate::file::ntfs::ExtendedAttributesInformation, u32)>
+        extended_attributes: Option<(&crate::io::file::ntfs::ExtendedAttributesInformation, u32)>
     ) -> Result<(Self, IoStatus), crate::error::NtStatus> {
         // `allocation_size` is always ignored for directories by Windows.
         Object::create_ntdll(
@@ -265,7 +265,7 @@ impl Directory {
         share_modes: ShareModes,
         creation_disposition: CreationDispositionDirectoryNtDll,
         creation_options: CreationOptions,
-        extended_attributes: Option<(&crate::file::ntfs::ExtendedAttributesInformation, u32)>
+        extended_attributes: Option<(&crate::io::file::ntfs::ExtendedAttributesInformation, u32)>
     ) -> Result<(Self, IoStatus), crate::error::NtStatus> {
         // `allocation_size` is always ignored for directories by Windows.
         Object::create_syscall(
@@ -359,7 +359,7 @@ impl File {
         share_modes: ShareModes,
         creation_disposition: CreationDispositionFileNtDll,
         creation_options: CreationOptions,
-        extended_attributes: Option<(&crate::file::ntfs::ExtendedAttributesInformation, u32)>
+        extended_attributes: Option<(&crate::io::file::ntfs::ExtendedAttributesInformation, u32)>
     ) -> Result<(Self, IoStatus), crate::error::NtStatus> {
         Object::create_ntdll(
             access_modes.0.value(), object_attributes, allocation_size, attributes,
@@ -388,7 +388,7 @@ impl File {
         share_modes: ShareModes,
         creation_disposition: CreationDispositionFileNtDll,
         creation_options: CreationOptions,
-        extended_attributes: Option<(&crate::file::ntfs::ExtendedAttributesInformation, u32)>
+        extended_attributes: Option<(&crate::io::file::ntfs::ExtendedAttributesInformation, u32)>
     ) -> Result<(Self, IoStatus), crate::error::NtStatus> {
         Object::create_syscall(
             access_modes.0.value(), object_attributes, allocation_size, attributes,
@@ -399,6 +399,171 @@ impl File {
             extended_attributes
         ).map(|(handle, status)| (Self(handle), status))
     }
+
+
+    /// Official documentation: [kernel32.ReadFile](https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-readfile).
+    ///
+    /// Official documentation: [ntdll.NtReadFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntreadfile).
+    ///
+    /// Reads data from the specified file. Reads occur at the position specified by the file
+    /// pointer if supported by the device.
+    #[inline(always)]
+    pub fn read<'a>(
+        &self,
+        buffer: &'a mut [core::mem::MaybeUninit<u8>]
+    ) -> Result<&'a mut [u8], crate::error::Error> {
+        #[cfg(not(any(winapi = "native", winapi = "syscall")))]
+        { Self::read_kernel32(self, buffer, None).map_err(|e| crate::error::Error::Status(e)) }
+        #[cfg(winapi = "native")]
+        { Self::read_ntdll(self, None, buffer, None).map(|r| r.0).map_err(|e| crate::error::Error::NtStatus(e)) }
+        #[cfg(winapi = "syscall")]
+        { Self::read_syscall(self, None, buffer, None).map(|r| r.0).map_err(|e| crate::error::Error::NtStatus(e)) }
+    }
+
+    /// Official documentation: [kernel32.ReadFile](https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-readfile).
+    ///
+    /// Reads data from the specified file. Reads occur at the position specified by the file
+    /// pointer if supported by the device.
+    #[inline(always)]
+    pub fn read_kernel32<'a>(
+        &self,
+        buffer: &'a mut [core::mem::MaybeUninit<u8>],
+        overlapped: Option<&mut crate::io::Overlapped>
+    ) -> Result<&'a mut [u8], crate::error::Status> {
+        let mut read_size = core::mem::MaybeUninit::uninit();
+        unsafe {
+            crate::dll::kernel32::ReadFile(
+                self.0.clone(),
+                buffer.as_mut_ptr() as *mut u8,
+                buffer.len() as u32,
+                read_size.as_mut_ptr(),
+                overlapped
+            ).to_status_result().map_or_else(|| Ok(
+                &mut *(&mut buffer[..read_size.assume_init() as usize] as *mut _ as *mut [u8])
+            ), |e| Err(e))
+        }
+    }
+
+    // TODO: Enable this once array lengths support generic parameters (see [#43408](https://github.com/rust-lang/rust/issues/43408)).
+    /*
+    /// Official documentation: [kernel32.ReadFile](https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-readfile).
+    ///
+    /// Reads data from the specified file. Reads occur at the position specified by the file
+    /// pointer if supported by the device.
+    ///
+    /// The user of this function has to make sure the `T` is FFI safe.
+    #[inline(always)]
+    pub unsafe fn read_generic_kernel32<'a, T: Sized>(
+        &self,
+        buffer: &'a mut T,
+        overlapped: Option<&mut crate::io::Overlapped>
+    ) -> Result<Result<&'a mut T, &'a mut [u8]>, crate::error::Status> {
+        self.read_kernel32(
+            &mut *(buffer as *mut _ as *mut [core::mem::MaybeUninit<u8>; core::mem::size_of::<T>()]),
+            overlapped
+        ).map(|result| crate::conversion::cast_mut(result).ok_or(result))
+    }
+    */
+
+    /// Official documentation: [ntdll.NtReadFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntreadfile).
+    ///
+    /// Reads data from the specified file. Reads occur at the position specified by the file
+    /// pointer if supported by the device.
+    #[inline(always)]
+    pub fn read_ntdll<'a>(
+        &self,
+        event: Option<&crate::object::synchronization::Event>,
+        buffer: &'a mut [core::mem::MaybeUninit<u8>],
+        offset: Option<&u64>
+    ) -> Result<&'a mut [u8], crate::error::NtStatus> {
+        let mut io_status_block = core::mem::MaybeUninit::uninit();
+
+        unsafe { crate::dll::ntdll::NtReadFile(
+            self.0.clone(),
+            event.map(|e| e.0.clone()),
+            0 as _, 0 as _,
+            io_status_block.as_mut_ptr(),
+            buffer.as_mut_ptr() as *mut u8,
+            buffer.len() as u32,
+            offset,
+            None
+        ).map(|e| Err(e)).unwrap_or_else(|| Ok(
+            &mut *(&mut buffer[..io_status_block.assume_init().information as u32 as usize] as *mut _ as *mut [u8])
+        )) }
+    }
+
+    // TODO: Enable this once array lengths support generic parameters (see [#43408](https://github.com/rust-lang/rust/issues/43408)).
+    /*
+    /// Official documentation: [ntdll.NtReadFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntreadfile).
+    ///
+    /// Reads data from the specified file. Reads occur at the position specified by the file
+    /// pointer if supported by the device.
+    ///
+    /// The user of this function has to make sure the `T` is FFI safe.
+    #[inline(always)]
+    pub unsafe fn read_generic_ntdll<'a, T: Sized>(
+        &self,
+        event: Option<&crate::object::synchronization::Event>,
+        buffer: &'a mut T,
+        offset: Option<&u64>
+    ) -> Result<Result<&'a mut T, &'a mut [u8]>, crate::error::NtStatus> {
+        self.read_ntdll(
+            event,
+            &mut *(buffer as *mut _ as *mut [core::mem::MaybeUninit<u8>; core::mem::size_of::<T>()]),
+            offset
+        ).map(|result| crate::conversion::cast_mut(result).ok_or(result))
+    }
+    */
+
+    /// Official documentation: [ntdll.NtReadFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntreadfile).
+    ///
+    /// Reads data from the specified file. Reads occur at the position specified by the file
+    /// pointer if supported by the device.
+    #[inline(always)]
+    pub fn read_syscall<'a>(
+        &self,
+        event: Option<&crate::object::synchronization::Event>,
+        buffer: &'a mut [core::mem::MaybeUninit<u8>],
+        offset: Option<&u64>
+    ) -> Result<&'a mut [u8], crate::error::NtStatus> {
+        let mut io_status_block = core::mem::MaybeUninit::uninit();
+
+        unsafe { crate::dll::syscall::NtReadFile(
+            self.0.clone(),
+            event.map(|e| e.0.clone()),
+            0 as _, 0 as _,
+            io_status_block.as_mut_ptr(),
+            buffer.as_mut_ptr() as *mut u8,
+            buffer.len() as u32,
+            offset,
+            None
+        ).map(|e| Err(e)).unwrap_or_else(|| Ok(
+            &mut *(&mut buffer[..io_status_block.assume_init().information as u32 as usize] as *mut _ as *mut [u8])
+        )) }
+    }
+
+    // TODO: Enable this once array lengths support generic parameters (see [#43408](https://github.com/rust-lang/rust/issues/43408)).
+    /*
+    /// Official documentation: [ntdll.NtReadFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntreadfile).
+    ///
+    /// Reads data from the specified file. Reads occur at the position specified by the file
+    /// pointer if supported by the device.
+    ///
+    /// The user of this function has to make sure the `T` is FFI safe.
+    #[inline(always)]
+    pub unsafe fn read_generic_syscall<'a, T: Sized>(
+        &self,
+        event: Option<&crate::object::synchronization::Event>,
+        buffer: &'a mut T,
+        offset: Option<&u64>
+    ) -> Result<Result<&'a mut T, &'a mut [u8]>, crate::error::NtStatus> {
+        self.read_syscall(
+            event,
+            &mut *(buffer as *mut _ as *mut [core::mem::MaybeUninit<u8>; core::mem::size_of::<T>()]),
+            offset
+        ).map(|result| crate::conversion::cast_mut(result).ok_or(result))
+    }
+    */
 }
 
 impl core::ops::Drop for File {
@@ -482,7 +647,7 @@ impl Object {
         Self::information_kernel32(path).map(|info| info.attributes)
     }
 
-    /// Official documentation: [ntdll.NtQueryAttributesFile](https://docs.microsoft.com/en-us/windows/win32/devnotes/ntqueryattributesfile).
+    /// Official documentation: [ntdll.NtQueryFullAttributesFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwqueryfullattributesfile).
     ///
     /// Tries to get the file system attributes for a specified file or directory.
     #[inline(always)]
@@ -492,7 +657,7 @@ impl Object {
         Self::information_ntdll(object_attributes).map(|info| info.attributes)
     }
 
-    /// Official documentation: [ntdll.NtQueryAttributesFile](https://docs.microsoft.com/en-us/windows/win32/devnotes/ntqueryattributesfile).
+    /// Official documentation: [ntdll.NtQueryFullAttributesFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwqueryfullattributesfile).
     ///
     /// Tries to get the file system attributes for a specified file or directory.
     #[inline(always)]
@@ -549,7 +714,7 @@ impl Object {
         share_modes: ShareModes,
         creation_disposition: u32,
         creation_options: CreationOptions,
-        extended_attributes: Option<(&crate::file::ntfs::ExtendedAttributesInformation, u32)>
+        extended_attributes: Option<(&crate::io::file::ntfs::ExtendedAttributesInformation, u32)>
     ) -> Result<(crate::object::Handle, IoStatus), crate::error::NtStatus> {
         let mut handle = core::mem::MaybeUninit::uninit();
         let mut io_status_block = core::mem::MaybeUninit::uninit();
@@ -579,7 +744,7 @@ impl Object {
         share_modes: ShareModes,
         creation_disposition: u32,
         creation_options: CreationOptions,
-        extended_attributes: Option<(&crate::file::ntfs::ExtendedAttributesInformation, u32)>
+        extended_attributes: Option<(&crate::io::file::ntfs::ExtendedAttributesInformation, u32)>
     ) -> Result<(crate::object::Handle, IoStatus), crate::error::NtStatus> {
         let mut handle = core::mem::MaybeUninit::uninit();
         let mut io_status_block = core::mem::MaybeUninit::uninit();
@@ -597,7 +762,7 @@ impl Object {
         ) }
     }
 
-    /// Official documentation: [ntdll.NtQueryAttributesFile](https://docs.microsoft.com/en-us/windows/win32/devnotes/ntqueryattributesfile).
+    /// Official documentation: [kernel32.GetFileAttributesExW](https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfileattributesexw).
     ///
     /// Tries to get the file system attributes for a specified file or directory file system object.
     #[inline(always)]
@@ -611,7 +776,7 @@ impl Object {
         ).to_status_result().map_or_else(|| Ok(information.assume_init()), |e| Err(e)) }
     }
 
-    /// Official documentation: [ntdll.NtQueryAttributesFile](https://docs.microsoft.com/en-us/windows/win32/devnotes/ntqueryattributesfile).
+    /// Official documentation: [ntdll.NtQueryFullAttributesFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwqueryfullattributesfile).
     ///
     /// Tries to get the file system attributes for a specified file or directory file system object.
     #[inline(always)]
@@ -625,7 +790,7 @@ impl Object {
         ).map(|e| Err(e)).unwrap_or_else(|| Ok(information.assume_init())) }
     }
 
-    /// Official documentation: [ntdll.NtQueryAttributesFile](https://docs.microsoft.com/en-us/windows/win32/devnotes/ntqueryattributesfile).
+    /// Official documentation: [ntdll.NtQueryFullAttributesFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwqueryfullattributesfile).
     ///
     /// Tries to get the file system attributes for a specified file or directory file system object.
     #[inline(always)]
@@ -639,11 +804,6 @@ impl Object {
         ).map(|e| Err(e)).unwrap_or_else(|| Ok(information.assume_init())) }
     }
 }
-
-/// Official documentation: [OVERLAPPED struct](https://docs.microsoft.com/en-us/windows/win32/api/minwinbase/ns-minwinbase-overlapped).
-// TODO: Fill with actual data.
-#[repr(C)]
-pub(crate) struct Overlapped(u8);
 
 bitfield::bit_field!(
     /// Official documentation: [FILE_SHARE_* enum](https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew).
@@ -719,7 +879,7 @@ mod tests {
         share_modes: ShareModes,
         creation_disposition: CreationDispositionDirectoryNtDll,
         creation_options: CreationOptions,
-        extended_attributes: Option<(&crate::file::ntfs::ExtendedAttributesInformation, u32)>
+        extended_attributes: Option<(&crate::io::file::ntfs::ExtendedAttributesInformation, u32)>
     ) -> Result<(Directory, IoStatus), crate::error::NtStatus>;
 
     type NtCreateFile = fn(
@@ -730,12 +890,23 @@ mod tests {
         share_modes: ShareModes,
         creation_disposition: CreationDispositionFileNtDll,
         creation_options: CreationOptions,
-        extended_attributes: Option<(&crate::file::ntfs::ExtendedAttributesInformation, u32)>
+        extended_attributes: Option<(&crate::io::file::ntfs::ExtendedAttributesInformation, u32)>
     ) -> Result<(File, IoStatus), crate::error::NtStatus>;
 
-    type NtQueryFullAttributesFile = fn(
+    type NtQueryObjectAttributes = fn (
+        object_attributes: &crate::object::Attributes
+    ) -> Result<Attributes, crate::error::NtStatus>;
+
+    type NtQueryObjectInformation = fn(
         object_attributes: &crate::object::Attributes
     ) -> Result<info::BasicNtDll, crate::error::NtStatus>;
+
+    type NtReadFile = for<'a> fn (
+        &File,
+        event: Option<&crate::object::synchronization::Event>,
+        buffer: &'a mut [core::mem::MaybeUninit<u8>],
+        offset: Option<&u64>
+    ) -> Result<&'a mut [u8], crate::error::NtStatus>;
 
     #[test]
     fn directory_create_kernel32_path() {
@@ -1581,16 +1752,17 @@ mod tests {
     #[test]
     fn file_create_nt_allocation_size() {
         crate::init_syscall_ids();
+
         for f in &[
             (
                 Directory::create_ntdll as NtCreateDirectory,
                 File::create_ntdll as NtCreateFile,
-                Object::information_ntdll as NtQueryFullAttributesFile
+                Object::information_ntdll as NtQueryObjectInformation
             ),
             (
                 Directory::create_syscall as NtCreateDirectory,
                 File::create_syscall as NtCreateFile,
-                Object::information_syscall as NtQueryFullAttributesFile
+                Object::information_syscall as NtQueryObjectInformation
             )
         ] {
             let dir = String::from(r"\??\C:\winapi2_file_create_nt_allocation_size\");
@@ -1925,6 +2097,133 @@ mod tests {
     */
 
     #[test]
+    fn file_read_kernel32() {
+        let notepad = String::from("C:\\Windows\\notepad.exe\0");
+
+        let mut mz = unsafe {
+            core::mem::MaybeUninit::<[core::mem::MaybeUninit<u8>; 2]>::uninit().assume_init()
+        };
+
+        // Without `ReadData` permission.
+        let mut file = File::create_kernel32(
+            notepad.as_ref(),
+            FileAccessModes::new(),
+            ShareModes::all(),
+            None,
+            CreationDispositionFileKernel32::OpenExisting,
+            Attributes::new(),
+            None
+        ).unwrap().0;
+
+        assert_eq!(
+            file.read_kernel32(&mut mz, None),
+            Err(crate::error::StatusValue::AccessDenied.into())
+        );
+
+        // With `ReadData` permission.
+        file = File::create_kernel32(
+            notepad.as_ref(),
+            FileAccessModes::new().set(FileAccessMode::ReadData, true),
+            ShareModes::all(),
+            None,
+            CreationDispositionFileKernel32::OpenExisting,
+            Attributes::new(),
+            None
+        ).unwrap().0;
+
+        // Check the DOS header signature.
+        assert_eq!(
+            file.read_kernel32(&mut mz, None),
+            Ok([b'M', b'Z'].as_mut())
+        );
+
+        // TODO: Use `SetFilePointerEx` to read the PE header signature like in `file_read_nt`.
+
+        // TODO: Use `Overlap` structure.
+    }
+
+    #[test]
+    fn file_read_nt() {
+        crate::init_syscall_ids();
+
+        for f in &[
+            (
+                File::create_ntdll as NtCreateFile,
+                File::read_ntdll as NtReadFile
+            ),
+            (
+                File::create_syscall as NtCreateFile,
+                File::read_syscall as NtReadFile
+            )
+        ] {
+            let notepad = String::from(r"\??\C:\Windows\notepad.exe");
+            let notepad = StringW::from(notepad.as_ref());
+            let notepad = crate::object::Attributes::from_name(&notepad);
+
+            let mut mz = unsafe {
+                core::mem::MaybeUninit::<[core::mem::MaybeUninit<u8>; 2]>::uninit().assume_init()
+            };
+
+            // Without `ReadData` permission.
+            let mut file = f.0(
+                FileAccessModes::new()
+                    .set_standard(crate::object::AccessMode::Synchronize, true),
+                &notepad,
+                None,
+                Attributes::new(),
+                ShareModes::all(),
+                CreationDispositionFileNtDll::OpenExisting,
+                CreationOptions::new().set(CreationOption::SynchronousIoNonAlert, true),
+                None
+            ).unwrap().0;
+
+            assert_eq!(
+                f.1(&file, None, &mut mz, None),
+                Err(crate::error::NtStatusValue::AccessDenied.into())
+            );
+
+            // With `ReadData` permission.
+            file = f.0(
+                FileAccessModes::new()
+                    .set(FileAccessMode::ReadData, true)
+                    .set_standard(crate::object::AccessMode::Synchronize, true),
+                &notepad,
+                None,
+                Attributes::new(),
+                ShareModes::all(),
+                CreationDispositionFileNtDll::OpenExisting,
+                CreationOptions::new().set(CreationOption::SynchronousIoNonAlert, true),
+                None
+            ).unwrap().0;
+
+            // Check the DOS header signature.
+            assert_eq!(
+                f.1(&file, None, &mut mz, None),
+                Ok([b'M', b'Z'].as_mut())
+            );
+
+            // Read the offset to the PE header from the DOS header.
+            let mut offset_pe_header = unsafe {
+                core::mem::MaybeUninit::<[core::mem::MaybeUninit<u8>; 4]>::uninit().assume_init()
+            };
+            let offset_pe_header: &u32 = unsafe { crate::conversion::cast_mut(
+                f.1(&file, None, &mut offset_pe_header, Some(&0x3C)).unwrap()
+            ).unwrap() };
+
+            // Read and check the PE header signature.
+            let mut pe_header_signature = unsafe {
+                core::mem::MaybeUninit::<[core::mem::MaybeUninit<u8>; 4]>::uninit().assume_init()
+            };
+            assert_eq!(
+                f.1(&file, None, &mut pe_header_signature, Some(&(*offset_pe_header as u64))),
+                Ok([b'P', b'E', 0, 0].as_mut())
+            );
+
+            // TODO: Use the `event` argument.
+        }
+    }
+
+    #[test]
     fn object_attributes_kernel32() {
         // Non-existent file.
         let path = String::from("C:\\winapi2_this_must_not_exist.test\0");
@@ -1970,83 +2269,49 @@ mod tests {
     }
 
     #[test]
-    fn object_attributes_ntdll() {
-        // Non-existent file.
-        let path = String::from(r"\??\C:\winapi2_this_must_not_exist.test");
-        let path = StringW::from(path.as_ref());
-        let object_attributes = crate::object::Attributes::from_name(&path);
-        assert_eq!(
-            Object::attributes_ntdll(&object_attributes).map(|_| ()),
-            Err(crate::error::NtStatusValue::ObjectNameNotFound.into())
-        );
-
-        // File in non-existent directory.
-        let path = String::from(r"\??\C:\winapi2_this_must_not_exist.test\test.txt");
-        let path = StringW::from(path.as_ref());
-        let object_attributes = crate::object::Attributes::from_name(&path);
-        assert_eq!(
-            Object::attributes_ntdll(&object_attributes).map(|_| ()),
-            Err(crate::error::NtStatusValue::ObjectPathNotFound.into())
-        );
-
-        // Directory.
-        let path = String::from(r"\??\C:\");
-        let path = StringW::from(path.as_ref());
-        let object_attributes = crate::object::Attributes::from_name(&path);
-        let attributes = Object::attributes_ntdll(&object_attributes).unwrap();
-
-        assert!(!attributes.has(Attribute::ReadOnly));
-        assert!(attributes.has(Attribute::Directory));
-
-        // File.
-        let path = String::from(r"\??\C:\Windows\System32\ntdll.dll");
-        let path = StringW::from(path.as_ref());
-        let object_attributes = crate::object::Attributes::from_name(&path);
-        let attributes = Object::attributes_ntdll(&object_attributes).unwrap();
-
-        assert!(!attributes.has(Attribute::ReadOnly));
-        assert!(!attributes.has(Attribute::Directory));
-    }
-
-    #[test]
-    fn object_attributes_syscall() {
+    fn object_attributes_nt() {
         crate::init_syscall_ids();
 
-        // Non-existent file.
-        let path = String::from(r"\??\C:\winapi2_this_must_not_exist.test");
-        let path = StringW::from(path.as_ref());
-        let object_attributes = crate::object::Attributes::from_name(&path);
-        assert_eq!(
-            Object::attributes_syscall(&object_attributes).map(|_| ()),
-            Err(crate::error::NtStatusValue::ObjectNameNotFound.into())
-        );
+        for f in &[
+            Object::attributes_ntdll as NtQueryObjectAttributes,
+            Object::attributes_syscall as NtQueryObjectAttributes,
+        ] {
+            // Non-existent file.
+            let path = String::from(r"\??\C:\winapi2_this_must_not_exist.test");
+            let path = StringW::from(path.as_ref());
+            let object_attributes = crate::object::Attributes::from_name(&path);
+            assert_eq!(
+                f(&object_attributes).map(|_| ()),
+                Err(crate::error::NtStatusValue::ObjectNameNotFound.into())
+            );
 
-        // File in non-existent directory.
-        let path = String::from(r"\??\C:\winapi2_this_must_not_exist.test\test.txt");
-        let path = StringW::from(path.as_ref());
-        let object_attributes = crate::object::Attributes::from_name(&path);
-        assert_eq!(
-            Object::attributes_syscall(&object_attributes).map(|_| ()),
-            Err(crate::error::NtStatusValue::ObjectPathNotFound.into())
-        );
+            // File in non-existent directory.
+            let path = String::from(r"\??\C:\winapi2_this_must_not_exist.test\test.txt");
+            let path = StringW::from(path.as_ref());
+            let object_attributes = crate::object::Attributes::from_name(&path);
+            assert_eq!(
+                f(&object_attributes).map(|_| ()),
+                Err(crate::error::NtStatusValue::ObjectPathNotFound.into())
+            );
 
-        // Directory.
-        let path = String::from(r"\??\C:\");
-        let path = StringW::from(path.as_ref());
-        let object_attributes = crate::object::Attributes::from_name(&path);
-        let attributes = Object::attributes_syscall(&object_attributes).unwrap();
+            // Directory.
+            let path = String::from(r"\??\C:\");
+            let path = StringW::from(path.as_ref());
+            let object_attributes = crate::object::Attributes::from_name(&path);
+            let attributes = f(&object_attributes).unwrap();
 
-        assert!(!attributes.has(Attribute::ReadOnly));
-        assert!(attributes.has(Attribute::Directory));
+            assert!(!attributes.has(Attribute::ReadOnly));
+            assert!(attributes.has(Attribute::Directory));
 
-        // File.
-        let path = String::from(r"\??\C:\Windows\System32\ntdll.dll");
-        let path = StringW::from(path.as_ref());
-        let object_attributes = crate::object::Attributes::from_name(&path);
-        let attributes = Object::attributes_syscall(&object_attributes).unwrap();
+            // File.
+            let path = String::from(r"\??\C:\Windows\System32\ntdll.dll");
+            let path = StringW::from(path.as_ref());
+            let object_attributes = crate::object::Attributes::from_name(&path);
+            let attributes = f(&object_attributes).unwrap();
 
-        assert!(!attributes.has(Attribute::ReadOnly));
-        assert!(!attributes.has(Attribute::Directory));
+            assert!(!attributes.has(Attribute::ReadOnly));
+            assert!(!attributes.has(Attribute::Directory));
+        }
     }
 
     #[test]
@@ -2095,82 +2360,48 @@ mod tests {
     }
 
     #[test]
-    fn object_information_ntdll() {
-        // Non-existent file.
-        let path = String::from(r"\??\C:\winapi2_this_must_not_exist.test");
-        let path = StringW::from(path.as_ref());
-        let object_attributes = crate::object::Attributes::from_name(&path);
-        assert_eq!(
-            Object::information_ntdll(&object_attributes).map(|_| ()),
-            Err(crate::error::NtStatusValue::ObjectNameNotFound.into())
-        );
-
-        // File in non-existent directory.
-        let path = String::from(r"\??\C:\winapi2_this_must_not_exist.test\test.txt");
-        let path = StringW::from(path.as_ref());
-        let object_attributes = crate::object::Attributes::from_name(&path);
-        assert_eq!(
-            Object::information_ntdll(&object_attributes).map(|_| ()),
-            Err(crate::error::NtStatusValue::ObjectPathNotFound.into())
-        );
-
-        // Directory.
-        let path = String::from(r"\??\C:\");
-        let path = StringW::from(path.as_ref());
-        let object_attributes = crate::object::Attributes::from_name(&path);
-        let info = Object::information_ntdll(&object_attributes).unwrap();
-
-        assert!(!info.attributes.has(Attribute::ReadOnly));
-        assert!(info.attributes.has(Attribute::Directory));
-
-        // File.
-        let path = String::from(r"\??\C:\Windows\System32\ntdll.dll");
-        let path = StringW::from(path.as_ref());
-        let object_attributes = crate::object::Attributes::from_name(&path);
-        let info = Object::information_ntdll(&object_attributes).unwrap();
-
-        assert!(!info.attributes.has(Attribute::ReadOnly));
-        assert!(!info.attributes.has(Attribute::Directory));
-    }
-
-    #[test]
-    fn object_information_syscall() {
+    fn object_information_nt() {
         crate::init_syscall_ids();
 
-        // Non-existent file.
-        let path = String::from(r"\??\C:\winapi2_this_must_not_exist.test");
-        let path = StringW::from(path.as_ref());
-        let object_attributes = crate::object::Attributes::from_name(&path);
-        assert_eq!(
-            Object::information_syscall(&object_attributes).map(|_| ()),
-            Err(crate::error::NtStatusValue::ObjectNameNotFound.into())
-        );
+        for f in &[
+            Object::information_ntdll as NtQueryObjectInformation,
+            Object::information_syscall as NtQueryObjectInformation,
+        ] {
+            // Non-existent file.
+            let path = String::from(r"\??\C:\winapi2_this_must_not_exist.test");
+            let path = StringW::from(path.as_ref());
+            let object_attributes = crate::object::Attributes::from_name(&path);
+            assert_eq!(
+                f(&object_attributes).map(|_| ()),
+                Err(crate::error::NtStatusValue::ObjectNameNotFound.into())
+            );
 
-        // File in non-existent directory.
-        let path = String::from(r"\??\C:\winapi2_this_must_not_exist.test\test.txt");
-        let path = StringW::from(path.as_ref());
-        let object_attributes = crate::object::Attributes::from_name(&path);
-        assert_eq!(
-            Object::information_syscall(&object_attributes).map(|_| ()),
-            Err(crate::error::NtStatusValue::ObjectPathNotFound.into())
-        );
+            // File in non-existent directory.
+            let path = String::from(r"\??\C:\winapi2_this_must_not_exist.test\test.txt");
+            let path = StringW::from(path.as_ref());
+            let object_attributes = crate::object::Attributes::from_name(&path);
+            assert_eq!(
+                f(&object_attributes).map(|_| ()),
+                Err(crate::error::NtStatusValue::ObjectPathNotFound.into())
+            );
 
-        // Directory.
-        let path = String::from(r"\??\C:\");
-        let path = StringW::from(path.as_ref());
-        let object_attributes = crate::object::Attributes::from_name(&path);
-        let info = Object::information_syscall(&object_attributes).unwrap();
+            // Directory.
+            let path = String::from(r"\??\C:\");
+            let path = StringW::from(path.as_ref());
+            let object_attributes = crate::object::Attributes::from_name(&path);
+            let info = f(&object_attributes).unwrap();
 
-        assert!(!info.attributes.has(Attribute::ReadOnly));
-        assert!(info.attributes.has(Attribute::Directory));
+            assert!(!info.attributes.has(Attribute::ReadOnly));
+            assert!(info.attributes.has(Attribute::Directory));
 
-        // File.
-        let path = String::from(r"\??\C:\Windows\System32\ntdll.dll");
-        let path = StringW::from(path.as_ref());
-        let object_attributes = crate::object::Attributes::from_name(&path);
-        let info = Object::information_syscall(&object_attributes).unwrap();
+            // File.
+            let path = String::from(r"\??\C:\Windows\System32\ntdll.dll");
+            let path = StringW::from(path.as_ref());
+            let object_attributes = crate::object::Attributes::from_name(&path);
+            let info = f(&object_attributes).unwrap();
 
-        assert!(!info.attributes.has(Attribute::ReadOnly));
-        assert!(!info.attributes.has(Attribute::Directory));
+            assert!(!info.attributes.has(Attribute::ReadOnly));
+            assert!(!info.attributes.has(Attribute::Directory));
+        }
     }
 }

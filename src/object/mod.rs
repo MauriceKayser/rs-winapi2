@@ -3,6 +3,7 @@
 use enum_extensions::Iterator;
 
 pub mod security;
+pub mod synchronization;
 
 /// Official documentation: [ACCESS_MASK format](https://docs.microsoft.com/en-us/windows/win32/secauthz/access-mask-format).
 ///
@@ -76,7 +77,7 @@ impl<'a> Attributes<'a> {
 /// directory in the object manager namespace.
 #[allow(missing_docs)]
 pub enum AttributeDirectory<'a> {
-    File(&'a crate::file::Directory),
+    File(&'a crate::io::file::Directory),
     Object(&'a Directory)
 }
 

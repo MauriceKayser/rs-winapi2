@@ -1,15 +1,18 @@
 //! Functions to cast buffers to structures.
 
+// TODO: Set to `pub(crate)` once array lengths support generic parameters (see [#43408](https://github.com/rust-lang/rust/issues/43408)).
+/// Casts a large enough byte slice to a generic type reference.
 #[inline(always)]
-pub(crate) unsafe fn cast<T>(buffer: &[u8]) -> Option<&T> {
+pub unsafe fn cast<T>(buffer: &[u8]) -> Option<&T> {
     if core::mem::size_of::<T>() <= buffer.len() {
         Some(&*(buffer as *const _ as *const T))
     } else { None }
 }
 
-#[allow(unused)]
+// TODO: Set to `pub(crate)` once array lengths support generic parameters (see [#43408](https://github.com/rust-lang/rust/issues/43408)).
+/// Casts a large enough mutable byte slice to a mutable generic type reference.
 #[inline(always)]
-pub(crate) unsafe fn cast_mut<T>(buffer: &mut [u8]) -> Option<&mut T> {
+pub unsafe fn cast_mut<T>(buffer: &mut [u8]) -> Option<&mut T> {
     if core::mem::size_of::<T>() <= buffer.len() {
         Some(&mut *(buffer as *mut _ as *mut T))
     } else { None }
