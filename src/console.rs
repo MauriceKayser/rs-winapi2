@@ -5,53 +5,53 @@ pub struct Console();
 
 impl Console {
     /// Writes UTF-8 encoded text to the console.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn write(text: &str) -> crate::error::ErrorResult {
         Self::write_kernel32(text).map(|s| crate::error::Error::Status(s))
         // TODO: ntdll & syscall.
     }
 
     /// Writes wide char encoded text to the console.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn write_wide(text: &crate::string::Str) -> crate::error::ErrorResult {
         Self::write_wide_kernel32(text).map(|s| crate::error::Error::Status(s))
         // TODO: ntdll & syscall.
     }
 
     /// Writes UTF-8 encoded text to the error console.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn write_error(text: &str) -> crate::error::ErrorResult {
         Self::write_error_kernel32(text).map(|s| crate::error::Error::Status(s))
         // TODO: ntdll & syscall.
     }
 
     /// Writes wide char encoded text to the error console.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn write_error_wide(text: &crate::string::Str) -> crate::error::ErrorResult {
         Self::write_error_wide_kernel32(text).map(|s| crate::error::Error::Status(s))
         // TODO: ntdll & syscall.
     }
 
     /// Writes UTF-8 encoded text to the console.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn write_kernel32(text: &str) -> crate::error::StatusResult {
         Self::internal_write_kernel32(text, StandardDevice::Output)
     }
 
     /// Writes wide char encoded text to the console.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn write_wide_kernel32(text: &crate::string::Str) -> crate::error::StatusResult {
         Self::internal_write_wide_kernel32(text, StandardDevice::Output)
     }
 
     /// Writes UTF-8 encoded text to the error console.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn write_error_kernel32(text: &str) -> crate::error::StatusResult {
         Self::internal_write_kernel32(text, StandardDevice::Error)
     }
 
     /// Writes wide char encoded text to the error console.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn write_error_wide_kernel32(text: &crate::string::Str) -> crate::error::StatusResult {
         Self::internal_write_wide_kernel32(text, StandardDevice::Error)
     }
@@ -88,7 +88,7 @@ impl Console {
                         text.as_ptr(),
                         core::cmp::min(text.len(), core::u32::MAX as usize) as u32,
                         written_size.as_mut_ptr(),
-                        0 as *mut _
+                        None
                     ).into() && written_size.assume_init() as usize == text.len() {
                         return None;
                     }
@@ -131,7 +131,7 @@ impl Console {
                         converted.as_ptr(),
                         core::cmp::min(converted.len(), core::u32::MAX as usize) as u32,
                         written_size.as_mut_ptr(),
-                        0 as *mut _
+                        None
                     ).into() && written_size.assume_init() as usize == converted.len() {
                         return None;
                     }

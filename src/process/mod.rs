@@ -48,19 +48,19 @@ pub struct ClientId {
 
 impl ClientId {
     /// Creates a new instance.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub const fn new(process: u32, thread: u32) -> Self {
         Self { process: process as usize, thread: thread as usize }
     }
 
     /// Creates an instance from a process object id.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub const fn from_process_id(id: u32) -> Self {
         Self { process: id as usize, thread: 0 }
     }
 
     /// Creates an instance from a thread object id.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub const fn from_thread_id(id: u32) -> Self {
         Self { process: 0, thread: id as usize }
     }
@@ -180,7 +180,7 @@ pub struct Process(crate::object::Handle);
 
 impl Process {
     /// Returns an instance which uses a pseudo handle with all access to the current process.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub const fn current() -> Self {
         Self(crate::object::Handle::from(unsafe { core::num::NonZeroIsize::new_unchecked(-1) }))
     }
@@ -188,20 +188,20 @@ impl Process {
     /// Official documentation: [PROCESS_BASIC_INFORMATION struct](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationprocess#process_basic_information).
     ///
     /// Returns basic information about the specified process.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn information(&self) -> Result<info::Basic, crate::error::Error> {
         #[cfg(not(any(winapi = "native", winapi = "syscall")))]
-        { Self::information_kernel32(self).map_err(|e| crate::error::Error::Status(e)) }
+        { self.information_kernel32().map_err(|e| crate::error::Error::Status(e)) }
         #[cfg(winapi = "native")]
-        { Self::information_ntdll(self).map_err(|e| crate::error::Error::NtStatus(e)) }
+        { self.information_ntdll().map_err(|e| crate::error::Error::NtStatus(e)) }
         #[cfg(winapi = "syscall")]
-        { Self::information_syscall(self).map_err(|e| crate::error::Error::NtStatus(e)) }
+        { self.information_syscall().map_err(|e| crate::error::Error::NtStatus(e)) }
     }
 
     /// Official documentation: [PROCESS_BASIC_INFORMATION struct](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationprocess#process_basic_information).
     ///
     /// Returns basic information about the specified process.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn information_kernel32(&self) -> Result<info::Basic, crate::error::Status> {
         // TODO: Implement and test.
         Err(crate::error::StatusValue::CallNotImplemented.into())
@@ -210,7 +210,7 @@ impl Process {
     /// Official documentation: [PROCESS_BASIC_INFORMATION struct](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationprocess#process_basic_information).
     ///
     /// Returns basic information about the specified process.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn information_ntdll(&self) -> Result<info::Basic, crate::error::NtStatus> {
         unsafe {
             let mut basic = core::mem::MaybeUninit::<info::Basic>::uninit();
@@ -232,7 +232,7 @@ impl Process {
     /// Official documentation: [PROCESS_BASIC_INFORMATION struct](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationprocess#process_basic_information).
     ///
     /// Returns the process identifier of the specified process.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn information_syscall(&self) -> Result<info::Basic, crate::error::NtStatus> {
         unsafe {
             let mut basic = core::mem::MaybeUninit::<info::Basic>::uninit();
@@ -252,7 +252,7 @@ impl Process {
     }
 
     /// Returns an iterator over all currently running processes.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn iter() -> Result<RuntimeSnapshot, crate::error::Error> {
         #[cfg(not(any(winapi = "native", winapi = "syscall")))]
         { Self::iter_kernel32().map_err(|e| crate::error::Error::Status(e)) }
@@ -263,14 +263,14 @@ impl Process {
     }
 
     /// Returns an iterator over all currently running processes.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn iter_kernel32() -> Result<RuntimeSnapshot, crate::error::Status> {
         // TODO: Implement and test (f. e. via `CreateToolhelp32Snapshot`).
         Err(crate::error::StatusValue::CallNotImplemented.into())
     }
 
     /// Returns an iterator over all currently running processes.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn iter_ntdll() -> Result<RuntimeSnapshot, crate::error::NtStatus> {
         let mut buffer = Vec::new();
 
@@ -299,7 +299,7 @@ impl Process {
     }
 
     /// Returns an iterator over all currently running processes.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn iter_syscall() -> Result<RuntimeSnapshot, crate::error::NtStatus> {
         let mut buffer = Vec::new();
 
@@ -330,7 +330,7 @@ impl Process {
     /// Official documentation: [kernel32.OpenProcess](https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-openprocess).
     ///
     /// Tries to open an existing local process object.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn open(id: u32, access_modes: AccessModes, inherit_handles: bool)
         -> Result<Self, crate::error::Error>
     {
@@ -354,7 +354,7 @@ impl Process {
     }
 
     /// Tries to open an existing local process object.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn open_kernel32(id: u32, access_modes: AccessModes, inherit_handles: bool)
         -> Result<Self, crate::error::Status>
     {
@@ -368,7 +368,7 @@ impl Process {
     }
 
     /// Tries to open an existing local process object.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn open_ntdll(
         client_id: &ClientId,
         access_modes: AccessModes,
@@ -382,7 +382,7 @@ impl Process {
     }
 
     /// Tries to open an existing local process object.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn open_syscall(
         client_id: &ClientId,
         access_modes: AccessModes,
@@ -398,7 +398,7 @@ impl Process {
     /// Official documentation: [kernel32.TerminateProcess](https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-terminateprocess).
     ///
     /// Tries to terminate the process.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn terminate(&self, exit_code: u32) -> crate::error::ErrorResult {
         #[cfg(not(any(winapi = "native", winapi = "syscall")))]
         { self.terminate_kernel32(exit_code).map(|e| crate::error::Error::Status(e)) }
@@ -409,7 +409,7 @@ impl Process {
     }
 
     /// Tries to terminate the process by calling `kernel32.TerminateProcess`.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn terminate_kernel32(&self, exit_code: u32) -> crate::error::StatusResult {
         unsafe { crate::dll::kernel32::TerminateProcess(
             self.0.clone(), exit_code
@@ -417,21 +417,21 @@ impl Process {
     }
 
     /// Tries to terminate the process by calling `ntdll.NtTerminateProcess`.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn terminate_ntdll(&self, exit_code: u32) -> crate::error::NtStatusResult {
         unsafe { crate::dll::ntdll::NtTerminateProcess(self.0.clone(), exit_code) }
     }
 
     /// Tries to terminate the process by directly calling the `ntdll.NtTerminateProcess` system
     /// call.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn terminate_syscall(&self, exit_code: u32) -> crate::error::NtStatusResult {
         unsafe { crate::dll::syscall::NtTerminateProcess(self.0.clone(), exit_code) }
     }
 }
 
 impl core::ops::Drop for Process {
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     fn drop(&mut self) {
         self.0.clone().close();
     }
@@ -444,7 +444,7 @@ pub struct RuntimeSnapshot {
 
 impl RuntimeSnapshot {
     /// Creates an iterator over the processes in the snapshot.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub const fn iter(&self, include_threads: bool) -> RuntimeSnapshotIterator {
         RuntimeSnapshotIterator { snapshot: &self, index: 0, include_threads, is_done: false }
     }
@@ -462,7 +462,7 @@ pub struct RuntimeSnapshotIterator<'a> {
 impl<'a> core::iter::Iterator for RuntimeSnapshotIterator<'a> {
     type Item = RuntimeInformation<'a>;
 
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     fn next(&mut self) -> Option<Self::Item> {
         if self.is_done { return None; }
 

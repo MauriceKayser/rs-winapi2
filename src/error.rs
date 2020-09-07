@@ -33,7 +33,7 @@ pub struct NtStatus(core::num::NonZeroU32);
 impl NtStatus {
     // TODO: Remove once traits can have const fns (https://github.com/rust-lang/rfcs/pull/2632).
     /// `const` implementation of `core::convert::Into<u32>`.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub const fn into(self) -> u32 {
         self.0.get()
     }
@@ -1843,7 +1843,7 @@ pub enum NtStatusValue {
 impl NtStatusValue {
     // TODO: Remove once traits can have const fns (https://github.com/rust-lang/rfcs/pull/2632).
     /// `const` implementation of `core::convert::Into<NtStatus>`.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub const fn into(self) -> NtStatus {
         unsafe { NtStatus(core::num::NonZeroU32::new_unchecked(self as u32)) }
     }
@@ -1859,6 +1859,7 @@ pub struct Status(core::num::NonZeroU32);
 
 impl Status {
     /// Returns the last error code produced by the current thread.
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub(crate) fn last() -> Option<Self> {
         unsafe { crate::dll::kernel32::GetLastError() }
     }
@@ -4628,7 +4629,7 @@ pub enum StatusValue {
 impl StatusValue {
     // TODO: Remove once traits can have const fns (https://github.com/rust-lang/rfcs/pull/2632).
     /// `const` implementation of `core::convert::Into<Status>`.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub const fn into(self) -> Status {
         unsafe { Status(core::num::NonZeroU32::new_unchecked(self as u32)) }
     }

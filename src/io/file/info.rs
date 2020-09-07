@@ -14,7 +14,7 @@ pub struct BasicKernel32 {
 
 impl BasicKernel32 {
     /// Returns the amount of stored bytes on disk.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub const fn file_size(&self) -> u64 {
         self.file_size_low as u64 | ((self.file_size_high as u64) << 32)
     }
@@ -34,17 +34,17 @@ impl core::fmt::Debug for BasicKernel32 {
 
 /// Official documentation: [FILE_NETWORK_OPEN_INFORMATION struct](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_file_network_open_information).
 #[allow(missing_docs)]
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 #[repr(C)]
 pub struct BasicNtDll {
     pub creation_time: crate::io::file::Time,
     pub last_access_time: crate::io::file::Time,
     pub last_write_time: crate::io::file::Time,
     pub change_time: crate::io::file::Time,
-    /// The reserved space on disk (>= `end_of_file`).
+    /// The reserved space on disk (>= `file_size`).
     pub allocation_size: u64,
-    /// The amount of stored bytes on disk ("file size").
-    pub end_of_file: u64,
+    /// The amount of stored bytes on disk.
+    pub file_size: u64,
     pub attributes: crate::io::file::Attributes
 }
 
@@ -67,7 +67,7 @@ mod test {
         assert_eq!(ntdll.creation_time, kernel32.creation_time);
         assert_eq!(ntdll.last_access_time, kernel32.last_access_time);
         assert_eq!(ntdll.last_write_time, kernel32.last_write_time);
-        assert_eq!(ntdll.end_of_file, kernel32.file_size());
+        assert_eq!(ntdll.file_size, kernel32.file_size());
         assert_eq!(ntdll.attributes, kernel32.attributes);
     }
 }

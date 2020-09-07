@@ -16,7 +16,7 @@ pub struct Basic {
 
 impl Basic {
     #[allow(missing_docs)]
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn base_priority(&self) -> Result<super::thread::PriorityLevel, isize> {
         if self.base_priority_ < core::i32::MIN as isize || self.base_priority_ > core::i32::MAX as isize {
             return Err(self.base_priority_);
@@ -25,13 +25,13 @@ impl Basic {
     }
 
     #[allow(missing_docs)]
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub const fn id(&self) -> u32 {
         self.id_ as u32
     }
 
     #[allow(missing_docs)]
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub const fn inherited_from_id(&self) -> u32 {
         self.inherited_from_id_ as u32
     }

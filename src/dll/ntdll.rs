@@ -43,6 +43,15 @@ extern "system" {
         information: *mut crate::io::file::info::BasicNtDll
     ) -> crate::error::NtStatusResult;
 
+    /// Official documentation: [ntdll.NtQueryInformationFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntqueryinformationfile).
+    pub(crate) fn NtQueryInformationFile(
+        file: crate::object::Handle,
+        io_status_block: *mut crate::io::file::IoStatusBlock,
+        buffer: *mut u8,
+        buffer_size: u32,
+        information: crate::io::file::Information,
+    ) -> crate::error::NtStatusResult;
+
     /// Official documentation: [ntdll.NtQueryInformationProcess](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationprocess).
     pub(crate) fn NtQueryInformationProcess(
         process: crate::object::Handle,
@@ -77,6 +86,19 @@ extern "system" {
     pub(crate) fn NtTerminateProcess(
         process: crate::object::Handle,
         exit_code: u32
+    ) -> crate::error::NtStatusResult;
+
+    /// Official documentation [ntdll.NtWriteFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntwritefile).
+    pub(crate) fn NtWriteFile(
+        file: crate::object::Handle,
+        event: Option<crate::object::Handle>,
+        _apc_routine: *const u8,
+        _apc_context: *const u8,
+        io_status_block: *mut crate::io::file::IoStatusBlock,
+        buffer: *const u8,
+        buffer_size: u32,
+        offset: Option<&u64>,
+        _key: Option<&u32>
     ) -> crate::error::NtStatusResult;
 
     /// Official documentation: [ntdll.RtlAllocateHeap](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlallocateheap).

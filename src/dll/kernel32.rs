@@ -106,6 +106,6 @@ extern "system" {
         buffer: *const u8,
         buffer_size: u32,
         written_size: *mut u32,
-        overlapped: *mut crate::io::Overlapped
+        overlapped: Option<&mut crate::io::Overlapped>
     ) -> crate::types::Boolean;
 }

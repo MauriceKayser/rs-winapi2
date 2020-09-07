@@ -257,25 +257,25 @@ pub struct InformationProcess<'a> {
 
 impl<'a> InformationProcess<'a> {
     #[allow(missing_docs)]
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn base_priority(&self) -> Result<crate::process::thread::PriorityLevel, i32> {
         core::convert::TryFrom::try_from(self.base_priority_)
     }
 
     #[allow(missing_docs)]
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub const fn id(&self) -> u32 {
         self.id_ as u32
     }
 
     #[allow(missing_docs)]
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn image_name(&'a self) -> &'a crate::string::Str {
         (&self.image_name_).into()
     }
 
     #[allow(missing_docs)]
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub const fn inherited_from_id(&self) -> u32 {
         self.inherited_from_id_ as u32
     }
@@ -339,31 +339,31 @@ pub struct InformationThread {
 
 impl InformationThread {
     #[allow(missing_docs)]
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn base_priority(&self) -> Result<crate::process::thread::PriorityLevel, i32> {
         core::convert::TryFrom::try_from(self.base_priority_)
     }
 
     #[allow(missing_docs)]
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub const fn id(&self) -> u32 {
         self.id_.thread as u32
     }
 
     #[allow(missing_docs)]
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn priority(&self) -> Result<crate::process::thread::PriorityLevel, i32> {
         core::convert::TryFrom::try_from(self.priority_)
     }
 
     #[allow(missing_docs)]
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn state(&self) -> Result<crate::process::thread::State, u32> {
         core::convert::TryFrom::try_from(self.state_)
     }
 
     #[allow(missing_docs)]
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn wait_reason(&self) -> Result<crate::process::thread::WaitReason, u32> {
         core::convert::TryFrom::try_from(self.wait_reason_)
     }

@@ -7,10 +7,12 @@ pub struct Ids {
     pub create_file: u16,
     pub open_process: u16,
     pub query_full_attributes_file: u16,
+    pub query_information_file: u16,
     pub query_information_process: u16,
     pub query_system_information: u16,
     pub read_file: u16,
-    pub terminate_process: u16
+    pub terminate_process: u16,
+    pub write_file: u16
 }
 
 /// Global instance of system call ids that is used by all internal functions.
@@ -27,10 +29,12 @@ impl Ids {
                 create_file: 0x178,
                 open_process: 0xE9,
                 query_full_attributes_file: 0xC0,
+                query_information_file: 0xBC,
                 query_information_process: 0xB9,
                 query_system_information: 0x9D,
                 read_file: 0x08E,
-                terminate_process: 0x24
+                terminate_process: 0x24,
+                write_file: 0x07
             });
         }
         #[cfg(target_arch = "x86_64")]
@@ -41,10 +45,12 @@ impl Ids {
                 create_file: 0x55,
                 open_process: 0x26,
                 query_full_attributes_file: 0x140,
+                query_information_file: 0x11,
                 query_information_process: 0x19,
                 query_system_information: 0x36,
                 read_file: 0x06,
-                terminate_process: 0x2C
+                terminate_process: 0x2C,
+                write_file: 0x08
             });
         }
     }
@@ -59,10 +65,12 @@ impl Ids {
                 create_file: 0x178,
                 open_process: 0xE9,
                 query_full_attributes_file: 0xC0,
+                query_information_file: 0xBC,
                 query_information_process: 0xB9,
                 query_system_information: 0x9D,
                 read_file: 0x8E,
-                terminate_process: 0x24
+                terminate_process: 0x24,
+                write_file: 0x07
             });
         }
         #[cfg(target_arch = "x86_64")]
@@ -73,10 +81,12 @@ impl Ids {
                 create_file: 0x55,
                 open_process: 0x26,
                 query_full_attributes_file: 0x146,
+                query_information_file: 0x11,
                 query_information_process: 0x19,
                 query_system_information: 0x36,
                 read_file: 0x06,
-                terminate_process: 0x2C
+                terminate_process: 0x2C,
+                write_file: 0x08
             });
         }
     }
@@ -229,7 +239,7 @@ macro_rules! syscall {
 /// Official documentation: [ntdll.NtClose](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntclose).
 #[allow(non_snake_case)]
 #[cfg(winapi = "syscall")]
-#[inline(always)]
+#[cfg_attr(not(debug_assertions), inline(always))]
 pub(crate) unsafe fn NtClose(
     object: crate::object::Handle
 ) -> crate::error::NtStatusResult {
@@ -240,7 +250,7 @@ pub(crate) unsafe fn NtClose(
 
 /// Official documentation: [ntdll.NtCreateFile](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntcreatefile).
 #[allow(non_snake_case)]
-#[inline(always)]
+#[cfg_attr(not(debug_assertions), inline(always))]
 pub(crate) unsafe fn NtCreateFile(
     handle: *mut crate::object::Handle,
     // Specializations:
@@ -273,7 +283,7 @@ pub(crate) unsafe fn NtCreateFile(
 
 /// Official documentation: [ntdll.NtOpenProcess](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-ntopenprocess).
 #[allow(non_snake_case)]
-#[inline(always)]
+#[cfg_attr(not(debug_assertions), inline(always))]
 pub(crate) unsafe fn NtOpenProcess(
     handle: *mut crate::object::Handle,
     access_modes: crate::process::AccessModes,
@@ -287,7 +297,7 @@ pub(crate) unsafe fn NtOpenProcess(
 
 /// Official documentation: [ntdll.NtQueryFullAttributesFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwqueryfullattributesfile).
 #[allow(non_snake_case)]
-#[inline(always)]
+#[cfg_attr(not(debug_assertions), inline(always))]
 pub(crate) unsafe fn NtQueryFullAttributesFile(
     attributes: &crate::object::Attributes,
     information: *mut crate::io::file::info::BasicNtDll
@@ -295,9 +305,22 @@ pub(crate) unsafe fn NtQueryFullAttributesFile(
     syscall!(query_full_attributes_file, attributes, information)
 }
 
+/// Official documentation: [ntdll.NtQueryInformationFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntqueryinformationfile).
+#[allow(non_snake_case)]
+#[cfg_attr(not(debug_assertions), inline(always))]
+pub(crate) unsafe fn NtQueryInformationFile(
+    file: crate::object::Handle,
+    io_status_block: *mut crate::io::file::IoStatusBlock,
+    buffer: *mut u8,
+    buffer_size: u32,
+    information: crate::io::file::Information,
+) -> crate::error::NtStatusResult {
+    syscall!(query_information_file, file, io_status_block, buffer, buffer_size, information)
+}
+
 /// Official documentation: [ntdll.NtQueryInformationProcess](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationprocess).
 #[allow(non_snake_case)]
-#[inline(always)]
+#[cfg_attr(not(debug_assertions), inline(always))]
 pub(crate) unsafe fn NtQueryInformationProcess(
     process: crate::object::Handle,
     information: crate::process::Information,
@@ -310,7 +333,7 @@ pub(crate) unsafe fn NtQueryInformationProcess(
 
 /// Official documentation: [ntdll.NtQuerySystemInformation](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntquerysysteminformation).
 #[allow(non_snake_case)]
-#[inline(always)]
+#[cfg_attr(not(debug_assertions), inline(always))]
 pub(crate) unsafe fn NtQuerySystemInformation(
     information: crate::system::Information,
     buffer: *const u8,
@@ -322,7 +345,7 @@ pub(crate) unsafe fn NtQuerySystemInformation(
 
 /// Official documentation [ntdll.NtReadFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntreadfile).
 #[allow(non_snake_case)]
-#[inline(always)]
+#[cfg_attr(not(debug_assertions), inline(always))]
 pub(crate) unsafe fn NtReadFile(
     file: crate::object::Handle,
     event: Option<crate::object::Handle>,
@@ -341,7 +364,7 @@ pub(crate) unsafe fn NtReadFile(
 
 /// Official documentation: [ntdll.NtTerminateProcess](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-zwterminateprocess).
 #[allow(non_snake_case)]
-#[inline(always)]
+#[cfg_attr(not(debug_assertions), inline(always))]
 pub(crate) unsafe fn NtTerminateProcess(
     process: crate::object::Handle,
     exit_code: u32
@@ -349,4 +372,23 @@ pub(crate) unsafe fn NtTerminateProcess(
     let process = *(&process as *const _ as *const isize);
 
     syscall!(terminate_process, process, exit_code)
+}
+
+/// Official documentation [ntdll.NtWriteFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntwritefile).
+#[allow(non_snake_case)]
+#[cfg_attr(not(debug_assertions), inline(always))]
+pub(crate) unsafe fn NtWriteFile(
+    file: crate::object::Handle,
+    event: Option<crate::object::Handle>,
+    _apc_routine: *const u8,
+    _apc_context: *const u8,
+    io_status_block: *mut crate::io::file::IoStatusBlock,
+    buffer: *const u8,
+    buffer_size: u32,
+    offset: Option<&u64>,
+    _key: Option<&u32>
+) -> crate::error::NtStatusResult {
+    syscall!(write_file,
+        file, event, _apc_routine, _apc_context, io_status_block, buffer, buffer_size, offset, _key
+    )
 }

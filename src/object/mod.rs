@@ -38,7 +38,7 @@ pub struct Attributes<'a> {
 
 impl<'a> Attributes<'a> {
     /// Creates a new instance.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn new(
         root_directory: Option<&AttributeDirectory<'a>>,
         object_name: Option<&'a crate::string::StringW<'a>>,
@@ -60,7 +60,7 @@ impl<'a> Attributes<'a> {
     }
 
     /// Creates a new instance.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub const fn from_name(object_name: &'a crate::string::StringW<'a>) -> Self {
         Self {
             length: core::mem::size_of::<Attributes>() as u32,
@@ -123,19 +123,19 @@ impl Handle {
     /// `const` implementation of `core::convert::From<core::num::NonZeroIsize>`.
     ///
     /// To be used by functions which act upon pseudo-handles like `CURRENT_PROCESS = -1`.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub(crate) const fn from(value: core::num::NonZeroIsize) -> Self {
         Self(value)
     }
 
     /// Returns a boolean whether the given handle value is a pseudo handle (lower than `0`).
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub(crate) const fn is_pseudo(&self) -> bool {
         self.0.get() < 0
     }
 
     /// Closes the specified handle, if it is not a pseudo-handle.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub(crate) fn close(self) {
         if self.is_pseudo() { return; }
 

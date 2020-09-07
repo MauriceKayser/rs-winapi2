@@ -162,7 +162,7 @@ impl Directory {
     /// This operation fails if `Attribute::BackupSemantics` is not set to `true`.
     ///
     /// Returns `BadFileType` in case the path points to a file.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn create_kernel32(
         path: &crate::string::Str,
         access_modes: DirectoryAccessModes,
@@ -230,7 +230,7 @@ impl Directory {
     ///
     /// Sets `CreationOption::DirectoryFile` to `true` and
     /// `CreationOption::NonDirectoryFile` to `false`.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn create_ntdll(
         access_modes: DirectoryAccessModes,
         object_attributes: &crate::object::Attributes,
@@ -257,7 +257,7 @@ impl Directory {
     ///
     /// Sets `CreationOption::DirectoryFile` to `true` and
     /// `CreationOption::NonDirectoryFile` to `false`.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn create_syscall(
         access_modes: DirectoryAccessModes,
         object_attributes: &crate::object::Attributes,
@@ -277,10 +277,30 @@ impl Directory {
             extended_attributes
         ).map(|(handle, status)| (Self(handle), status))
     }
+
+    /// Official documentation: [ntdll.NtQueryInformationFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntqueryinformationfile).
+    ///
+    /// Tries to get the file system attributes for a specified file system object.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn information_ntdll(
+        &self
+    ) -> Result<info::BasicNtDll, crate::error::NtStatus> {
+        Object::object_information_ntdll(self.0.clone())
+    }
+
+    /// Official documentation: [ntdll.NtQueryInformationFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntqueryinformationfile).
+    ///
+    /// Tries to get the file system attributes for a specified file system object.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn information_syscall(
+        &self
+    ) -> Result<info::BasicNtDll, crate::error::NtStatus> {
+        Object::object_information_syscall(self.0.clone())
+    }
 }
 
 impl core::ops::Drop for Directory {
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     fn drop(&mut self) {
         self.0.clone().close();
     }
@@ -320,7 +340,7 @@ impl File {
     /// Tries to create or open a file system file object.
     ///
     /// Returns `BadFileType` in case the path points to a directory.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn create_kernel32(
         path: &crate::string::Str,
         access_modes: FileAccessModes,
@@ -350,7 +370,7 @@ impl File {
     /// `CreationOption::NonDirectoryFile` to `true`.
     ///
     /// At least on NTFS, the `allocation_size` parameter is rounded up to a 0x1000 boundary.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn create_ntdll(
         access_modes: FileAccessModes,
         object_attributes: &crate::object::Attributes,
@@ -379,7 +399,7 @@ impl File {
     /// `CreationOption::NonDirectoryFile` to `true`.
     ///
     /// At least on NTFS, the `allocation_size` parameter is rounded up to a 0x1000 boundary.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn create_syscall(
         access_modes: FileAccessModes,
         object_attributes: &crate::object::Attributes,
@@ -400,6 +420,25 @@ impl File {
         ).map(|(handle, status)| (Self(handle), status))
     }
 
+    /// Official documentation: [ntdll.NtQueryInformationFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntqueryinformationfile).
+    ///
+    /// Tries to get the file system attributes for a specified file system object.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn information_ntdll(
+        &self
+    ) -> Result<info::BasicNtDll, crate::error::NtStatus> {
+        Object::object_information_ntdll(self.0.clone())
+    }
+
+    /// Official documentation: [ntdll.NtQueryInformationFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntqueryinformationfile).
+    ///
+    /// Tries to get the file system attributes for a specified file system object.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn information_syscall(
+        &self
+    ) -> Result<info::BasicNtDll, crate::error::NtStatus> {
+        Object::object_information_syscall(self.0.clone())
+    }
 
     /// Official documentation: [kernel32.ReadFile](https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-readfile).
     ///
@@ -407,24 +446,45 @@ impl File {
     ///
     /// Reads data from the specified file. Reads occur at the position specified by the file
     /// pointer if supported by the device.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn read<'a>(
         &self,
         buffer: &'a mut [core::mem::MaybeUninit<u8>]
     ) -> Result<&'a mut [u8], crate::error::Error> {
         #[cfg(not(any(winapi = "native", winapi = "syscall")))]
-        { Self::read_kernel32(self, buffer, None).map_err(|e| crate::error::Error::Status(e)) }
+        { self.read_kernel32(buffer, None).map_err(|e| crate::error::Error::Status(e)) }
         #[cfg(winapi = "native")]
-        { Self::read_ntdll(self, None, buffer, None).map(|r| r.0).map_err(|e| crate::error::Error::NtStatus(e)) }
+        { self.read_ntdll(None, buffer, None).map_err(|e| crate::error::Error::NtStatus(e)) }
         #[cfg(winapi = "syscall")]
-        { Self::read_syscall(self, None, buffer, None).map(|r| r.0).map_err(|e| crate::error::Error::NtStatus(e)) }
+        { self.read_syscall(None, buffer, None).map_err(|e| crate::error::Error::NtStatus(e)) }
     }
+
+    // TODO: Enable this once array lengths support generic parameters (see [#43408](https://github.com/rust-lang/rust/issues/43408)).
+    /*
+    /// Official documentation: [kernel32.ReadFile](https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-readfile).
+    ///
+    /// Official documentation: [ntdll.NtReadFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntreadfile).
+    ///
+    /// Reads data from the specified file. Reads occur at the position specified by the file
+    /// pointer if supported by the device.
+    ///
+    /// The user of this function has to make sure the `T` is FFI safe.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub unsafe fn read_generic<'a, T: Sized>(
+        &self,
+        buffer: &'a mut T
+    ) -> Result<Result<&'a mut T, &'a mut [u8]>, crate::error::Error> {
+        self.read(
+            &mut *(buffer as *mut _ as *mut [core::mem::MaybeUninit<u8>; core::mem::size_of::<T>()])
+        ).map(|result| crate::conversion::cast_mut(result).ok_or(result))
+    }
+    */
 
     /// Official documentation: [kernel32.ReadFile](https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-readfile).
     ///
     /// Reads data from the specified file. Reads occur at the position specified by the file
     /// pointer if supported by the device.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn read_kernel32<'a>(
         &self,
         buffer: &'a mut [core::mem::MaybeUninit<u8>],
@@ -452,7 +512,7 @@ impl File {
     /// pointer if supported by the device.
     ///
     /// The user of this function has to make sure the `T` is FFI safe.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub unsafe fn read_generic_kernel32<'a, T: Sized>(
         &self,
         buffer: &'a mut T,
@@ -469,12 +529,12 @@ impl File {
     ///
     /// Reads data from the specified file. Reads occur at the position specified by the file
     /// pointer if supported by the device.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn read_ntdll<'a>(
         &self,
-        event: Option<&crate::object::synchronization::Event>,
         buffer: &'a mut [core::mem::MaybeUninit<u8>],
-        offset: Option<&u64>
+        offset: Option<&u64>,
+        event: Option<&crate::object::synchronization::Event>
     ) -> Result<&'a mut [u8], crate::error::NtStatus> {
         let mut io_status_block = core::mem::MaybeUninit::uninit();
 
@@ -500,17 +560,17 @@ impl File {
     /// pointer if supported by the device.
     ///
     /// The user of this function has to make sure the `T` is FFI safe.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub unsafe fn read_generic_ntdll<'a, T: Sized>(
         &self,
-        event: Option<&crate::object::synchronization::Event>,
         buffer: &'a mut T,
-        offset: Option<&u64>
+        offset: Option<&u64>,
+        event: Option<&crate::object::synchronization::Event>
     ) -> Result<Result<&'a mut T, &'a mut [u8]>, crate::error::NtStatus> {
         self.read_ntdll(
-            event,
             &mut *(buffer as *mut _ as *mut [core::mem::MaybeUninit<u8>; core::mem::size_of::<T>()]),
-            offset
+            offset,
+            event
         ).map(|result| crate::conversion::cast_mut(result).ok_or(result))
     }
     */
@@ -519,12 +579,12 @@ impl File {
     ///
     /// Reads data from the specified file. Reads occur at the position specified by the file
     /// pointer if supported by the device.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn read_syscall<'a>(
         &self,
-        event: Option<&crate::object::synchronization::Event>,
         buffer: &'a mut [core::mem::MaybeUninit<u8>],
-        offset: Option<&u64>
+        offset: Option<&u64>,
+        event: Option<&crate::object::synchronization::Event>
     ) -> Result<&'a mut [u8], crate::error::NtStatus> {
         let mut io_status_block = core::mem::MaybeUninit::uninit();
 
@@ -550,24 +610,212 @@ impl File {
     /// pointer if supported by the device.
     ///
     /// The user of this function has to make sure the `T` is FFI safe.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub unsafe fn read_generic_syscall<'a, T: Sized>(
         &self,
-        event: Option<&crate::object::synchronization::Event>,
         buffer: &'a mut T,
-        offset: Option<&u64>
+        offset: Option<&u64>,
+        event: Option<&crate::object::synchronization::Event>
     ) -> Result<Result<&'a mut T, &'a mut [u8]>, crate::error::NtStatus> {
         self.read_syscall(
-            event,
             &mut *(buffer as *mut _ as *mut [core::mem::MaybeUninit<u8>; core::mem::size_of::<T>()]),
-            offset
+            offset,
+            event
         ).map(|result| crate::conversion::cast_mut(result).ok_or(result))
+    }
+    */
+
+    /// Official documentation: [kernel32.WriteFile](https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-writefile).
+    ///
+    /// Official documentation: [ntdll.NtWriteFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntwritefile).
+    ///
+    /// Writes data to the specified file or input/output (I/O) device.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn write(
+        &self,
+        buffer: &[u8],
+        offset_and_event: Option<(&u64, Option<&crate::object::synchronization::Event>)>
+    ) -> Result<usize, crate::error::Error> {
+        #[cfg(not(any(winapi = "native", winapi = "syscall")))]
+        {
+            let mut overlapped = offset_and_event.map(
+                |(offset, event)| crate::io::Overlapped::new(*offset, event)
+            );
+            self.write_kernel32(buffer, overlapped.as_mut()).map_err(|e| crate::error::Error::Status(e))
+        }
+        #[cfg(winapi = "native")]
+        { self.write_ntdll(
+            buffer,
+            offset_and_event.map(|o| o.0),
+            offset_and_event.map(|e| e.1).flatten()
+        ).map_err(|e| crate::error::Error::NtStatus(e)) }
+        #[cfg(winapi = "syscall")]
+        { self.write_syscall(
+            buffer,
+            offset_and_event.map(|o| o.0),
+            offset_and_event.map(|e| e.1).flatten()
+        ).map_err(|e| crate::error::Error::NtStatus(e)) }
+    }
+
+    // TODO: Enable this once array lengths support generic parameters (see [#43408](https://github.com/rust-lang/rust/issues/43408)).
+    /*
+    /// Official documentation: [kernel32.WriteFile](https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-writefile).
+    ///
+    /// Official documentation: [ntdll.NtWriteFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntwritefile).
+    ///
+    /// Writes data to the specified file or input/output (I/O) device.
+    ///
+    /// The user of this function has to make sure the `T` is FFI safe.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub unsafe fn write_generic<T: Sized>(
+        &self,
+        buffer: &T,
+        offset_and_event: Option<(&u64, Option<&crate::object::synchronization::Event>)>
+    ) -> Result<usize, crate::error::Error> {
+        self.write(
+            &mut *(buffer as *mut _ as *mut [u8; core::mem::size_of::<T>()]),
+            offset_and_event
+        )
+    }
+    */
+
+    /// Official documentation: [kernel32.WriteFile](https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-writefile).
+    ///
+    /// Writes data to the specified file or input/output (I/O) device.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn write_kernel32(
+        &self,
+        buffer: &[u8],
+        overlapped: Option<&mut crate::io::Overlapped>
+    ) -> Result<usize, crate::error::Status> {
+        let mut write_size = core::mem::MaybeUninit::uninit();
+        unsafe {
+            crate::dll::kernel32::WriteFile(
+                self.0.clone(),
+                buffer.as_ptr(),
+                buffer.len() as u32,
+                write_size.as_mut_ptr(),
+                overlapped
+            ).to_status_result().map_or_else(
+                || Ok(write_size.assume_init() as usize), |e| Err(e)
+            )
+        }
+    }
+
+    // TODO: Enable this once array lengths support generic parameters (see [#43408](https://github.com/rust-lang/rust/issues/43408)).
+    /*
+    /// Official documentation: [kernel32.WriteFile](https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-writefile).
+    ///
+    /// Writes data to the specified file or input/output (I/O) device.
+    ///
+    /// The user of this function has to make sure the `T` is FFI safe.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub unsafe fn write_generic_kernel32<T: Sized>(
+        &self,
+        buffer: &T,
+        overlapped: Option<&mut crate::io::Overlapped>
+    ) -> Result<usize, crate::error::Status> {
+        self.write_kernel32(
+            &*(buffer as *const _ as *const [u8; core::mem::size_of::<T>()]), overlapped
+        )
+    }
+    */
+
+    /// Official documentation: [ntdll.NtWriteFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntwritefile).
+    ///
+    /// Writes data to an open file.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn write_ntdll(
+        &self,
+        buffer: &[u8],
+        offset: Option<&u64>,
+        event: Option<&crate::object::synchronization::Event>
+    ) -> Result<usize, crate::error::NtStatus> {
+        let mut io_status_block = core::mem::MaybeUninit::uninit();
+
+        unsafe { crate::dll::ntdll::NtWriteFile(
+            self.0.clone(),
+            event.map(|e| e.0.clone()),
+            0 as _, 0 as _,
+            io_status_block.as_mut_ptr(),
+            buffer.as_ptr(),
+            buffer.len() as u32,
+            offset,
+            None
+        ).map_or_else(
+            || Ok(io_status_block.assume_init().information as u32 as usize), |e| Err(e)
+        ) }
+    }
+
+    // TODO: Enable this once array lengths support generic parameters (see [#43408](https://github.com/rust-lang/rust/issues/43408)).
+    /*
+    /// Official documentation: [ntdll.NtWriteFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntwritefile).
+    ///
+    /// Writes data to an open file.
+    ///
+    /// The user of this function has to make sure the `T` is FFI safe.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub unsafe fn write_generic_ntdll<T: Sized>(
+        &self,
+        buffer: &T,
+        offset: Option<&u64>,
+        event: Option<&crate::object::synchronization::Event>
+    ) -> Result<usize, crate::error::NtStatus> {
+        self.write_ntdll(
+            &*(buffer as *const _ as *const [u8; core::mem::size_of::<T>()]), offset, event
+        )
+    }
+    */
+
+    /// Official documentation: [ntdll.NtWriteFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntwritefile).
+    ///
+    /// Writes data to an open file.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn write_syscall(
+        &self,
+        buffer: &[u8],
+        offset: Option<&u64>,
+        event: Option<&crate::object::synchronization::Event>
+    ) -> Result<usize, crate::error::NtStatus> {
+        let mut io_status_block = core::mem::MaybeUninit::uninit();
+
+        unsafe { crate::dll::syscall::NtWriteFile(
+            self.0.clone(),
+            event.map(|e| e.0.clone()),
+            0 as _, 0 as _,
+            io_status_block.as_mut_ptr(),
+            buffer.as_ptr(),
+            buffer.len() as u32,
+            offset,
+            None
+        ).map_or_else(
+            || Ok(io_status_block.assume_init().information as u32 as usize), |e| Err(e)
+        ) }
+    }
+
+    // TODO: Enable this once array lengths support generic parameters (see [#43408](https://github.com/rust-lang/rust/issues/43408)).
+    /*
+    /// Official documentation: [ntdll.NtWriteFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntwritefile).
+    ///
+    /// Writes data to an open file.
+    ///
+    /// The user of this function has to make sure the `T` is FFI safe.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub unsafe fn write_generic_syscall<T: Sized>(
+        &self,
+        buffer: &T,
+        offset: Option<&u64>,
+        event: Option<&crate::object::synchronization::Event>
+    ) -> Result<usize, crate::error::NtStatus> {
+        self.write_syscall(
+            &*(buffer as *const _ as *const [u8; core::mem::size_of::<T>()]), offset, event
+        )
     }
     */
 }
 
 impl core::ops::Drop for File {
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     fn drop(&mut self) {
         self.0.clone().close();
     }
@@ -597,6 +845,96 @@ pub enum FileAccessMode {
     WriteAttributes
 }
 
+/// Official documentation: [FileInformationClass enum](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ne-wdm-_file_information_class).
+#[allow(unused)]
+#[derive(Copy, Clone, Debug, Iterator)]
+#[repr(u32)]
+pub(crate) enum Information {
+    Directory = 1,
+    FullDirectory,
+    BothDirectory,
+    Basic,
+    Standard,
+    Internal,
+    Ea,
+    Access,
+    Name,
+    Rename,
+    Link,
+    Names,
+    Disposition,
+    Position,
+    FullEa,
+    Mode,
+    Alignment,
+    All,
+    Allocation,
+    EndOfFile,
+    AlternateName,
+    Stream,
+    Pipe,
+    PipeLocal,
+    PipeRemote,
+    MailslotQuery,
+    MailslotSet,
+    Compression,
+    ObjectId,
+    Completion,
+    MoveCluster,
+    Quota,
+    ReparsePoint,
+    NetworkOpen,
+    AttributeTag,
+    Tracking,
+    IdBothDirectory,
+    IdFullDirectory,
+    ValidDataLength,
+    ShortName,
+    IoCompletionNotification,
+    IoStatusBlockRange,
+    IoPriorityHint,
+    SfioReserve,
+    SfioVolume,
+    HardLink,
+    ProcessIdsUsingFile,
+    NormalizedName,
+    NetworkPhysicalName,
+    IdGlobalTxDirectory,
+    IsRemoteDevice,
+    Unused,
+    NumaNode,
+    StandardLink,
+    RemoteProtocol,
+
+    // These are special versions of these operations (defined earlier)
+    // which can be used by kernel mode drivers only to bypass security
+    // access checks for Rename and HardLink operations.  These operations
+    // are only recognized by the IOManager, a file system should never
+    // receive these.
+    RenameBypassAccessCheck,
+    LinkBypassAccessCheck,
+    // End of special information classes reserved for IOManager.
+
+    VolumeName,
+    Id,
+    IdExtdDirectory,
+    ReplaceCompletion,
+    HardLinkFullId,
+    IdExtdBothDirectory,
+    DispositionEx,
+    RenameEx,
+    RenameExBypassAccessCheck,
+    DesiredStorageClass,
+    Stat,
+    MemoryPartition,
+    StatLx,
+    CaseSensitive,
+    LinkEx,
+    LinkExBypassAccessCheck,
+    StorageReserveId,
+    CaseSensitiveForceAccessCheck,
+}
+
 /// Official documentation: [NtCreateFile status block results](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntcreatefile).
 #[allow(missing_docs)]
 #[derive(Copy, Clone, Debug, Eq, FromPrimitive, Iterator, PartialEq)]
@@ -620,7 +958,7 @@ pub(crate) struct IoStatusBlock {
 impl IoStatusBlock {
     /// Must only be used if the `IoStatusBlock` was used in a `NtCreateFile` or `NtOpenFile`
     /// operation.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     fn io_status(&self) -> Result<IoStatus, *const u8> {
         if self.information as usize > core::u32::MAX as usize { return Err(self.information); }
         core::convert::TryInto::<IoStatus>::try_into(self.information as usize as u32).map_err(
@@ -640,7 +978,7 @@ impl Object {
     /// Official documentation: [kernel32.GetFileAttributesW](https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfileattributesw).
     ///
     /// Tries to get the file system attributes for a specified file or directory.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn attributes_kernel32(
         path: &crate::string::Str
     ) -> Result<Attributes, crate::error::Status> {
@@ -650,7 +988,7 @@ impl Object {
     /// Official documentation: [ntdll.NtQueryFullAttributesFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwqueryfullattributesfile).
     ///
     /// Tries to get the file system attributes for a specified file or directory.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn attributes_ntdll(
         object_attributes: &crate::object::Attributes
     ) -> Result<Attributes, crate::error::NtStatus> {
@@ -660,7 +998,7 @@ impl Object {
     /// Official documentation: [ntdll.NtQueryFullAttributesFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwqueryfullattributesfile).
     ///
     /// Tries to get the file system attributes for a specified file or directory.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn attributes_syscall(
         object_attributes: &crate::object::Attributes
     ) -> Result<Attributes, crate::error::NtStatus> {
@@ -670,7 +1008,7 @@ impl Object {
     /// Official documentation: [kernel32.CreateFileW](https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew).
     ///
     /// Tries to create or open a file or directory file system object.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     fn create_kernel32(
         path: &crate::string::Str,
         access_modes: u32,
@@ -705,7 +1043,7 @@ impl Object {
     /// Official documentation: [ntdll.NtCreateFile](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntcreatefile).
     ///
     /// Tries to create or open a file or directory file system object.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     fn create_ntdll(
         access_modes: u32,
         object_attributes: &crate::object::Attributes,
@@ -735,7 +1073,7 @@ impl Object {
     /// Official documentation: [ntdll.NtCreateFile](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntcreatefile).
     ///
     /// Tries to create or open a file or directory file system object.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     fn create_syscall(
         access_modes: u32,
         object_attributes: &crate::object::Attributes,
@@ -765,7 +1103,7 @@ impl Object {
     /// Official documentation: [kernel32.GetFileAttributesExW](https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfileattributesexw).
     ///
     /// Tries to get the file system attributes for a specified file or directory file system object.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn information_kernel32(
         path: &crate::string::Str
     ) -> Result<info::BasicKernel32, crate::error::Status> {
@@ -779,7 +1117,7 @@ impl Object {
     /// Official documentation: [ntdll.NtQueryFullAttributesFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwqueryfullattributesfile).
     ///
     /// Tries to get the file system attributes for a specified file or directory file system object.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn information_ntdll(
         object_attributes: &crate::object::Attributes
     ) -> Result<info::BasicNtDll, crate::error::NtStatus> {
@@ -793,7 +1131,7 @@ impl Object {
     /// Official documentation: [ntdll.NtQueryFullAttributesFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwqueryfullattributesfile).
     ///
     /// Tries to get the file system attributes for a specified file or directory file system object.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn information_syscall(
         object_attributes: &crate::object::Attributes
     ) -> Result<info::BasicNtDll, crate::error::NtStatus> {
@@ -801,6 +1139,44 @@ impl Object {
 
         unsafe { crate::dll::syscall::NtQueryFullAttributesFile(
             object_attributes, information.as_mut_ptr()
+        ).map(|e| Err(e)).unwrap_or_else(|| Ok(information.assume_init())) }
+    }
+
+    /// Official documentation: [ntdll.NtQueryInformationFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntqueryinformationfile).
+    ///
+    /// Tries to get the file system attributes for a specified file system object.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    fn object_information_ntdll(
+        handle: crate::object::Handle
+    ) -> Result<info::BasicNtDll, crate::error::NtStatus> {
+        let mut information = core::mem::MaybeUninit::uninit();
+        let mut io_status_block = core::mem::MaybeUninit::uninit();
+
+        unsafe { crate::dll::ntdll::NtQueryInformationFile(
+            handle,
+            io_status_block.as_mut_ptr(),
+            information.as_mut_ptr() as *mut u8,
+            core::mem::size_of::<info::BasicNtDll>() as u32,
+            Information::NetworkOpen
+        ).map(|e| Err(e)).unwrap_or_else(|| Ok(information.assume_init())) }
+    }
+
+    /// Official documentation: [ntdll.NtQueryInformationFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntqueryinformationfile).
+    ///
+    /// Tries to get the file system attributes for a specified file system object.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    fn object_information_syscall(
+        handle: crate::object::Handle
+    ) -> Result<info::BasicNtDll, crate::error::NtStatus> {
+        let mut information = core::mem::MaybeUninit::uninit();
+        let mut io_status_block = core::mem::MaybeUninit::uninit();
+
+        unsafe { crate::dll::syscall::NtQueryInformationFile(
+            handle,
+            io_status_block.as_mut_ptr(),
+            information.as_mut_ptr() as *mut u8,
+            core::mem::size_of::<info::BasicNtDll>() as u32,
+            Information::NetworkOpen
         ).map(|e| Err(e)).unwrap_or_else(|| Ok(information.assume_init())) }
     }
 }
@@ -825,7 +1201,7 @@ pub enum ShareMode {
 
 impl ShareModes {
     /// Creates a new instance with all flags set to `true`.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub const fn all() -> Self {
         Self::new()
             .set(ShareMode::Read, true)
@@ -847,7 +1223,7 @@ pub struct Time {
 }
 
 impl Time {
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     const fn value(&self) -> i64 {
         self.time_low as i64 | ((self.time_high as i64) << 32)
     }
@@ -861,7 +1237,7 @@ impl core::fmt::Debug for Time {
 }
 
 impl core::cmp::PartialOrd for Time {
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
         core::cmp::PartialOrd::partial_cmp(&self.value(), &other.value())
     }
@@ -893,7 +1269,15 @@ mod tests {
         extended_attributes: Option<(&crate::io::file::ntfs::ExtendedAttributesInformation, u32)>
     ) -> Result<(File, IoStatus), crate::error::NtStatus>;
 
-    type NtQueryObjectAttributes = fn (
+    type NtQueryBasicInformationDirectory = fn(
+        &Directory
+    ) -> Result<info::BasicNtDll, crate::error::NtStatus>;
+
+    type NtQueryBasicInformationFile = fn(
+        &File
+    ) -> Result<info::BasicNtDll, crate::error::NtStatus>;
+
+    type NtQueryObjectAttributes = fn(
         object_attributes: &crate::object::Attributes
     ) -> Result<Attributes, crate::error::NtStatus>;
 
@@ -901,12 +1285,19 @@ mod tests {
         object_attributes: &crate::object::Attributes
     ) -> Result<info::BasicNtDll, crate::error::NtStatus>;
 
-    type NtReadFile = for<'a> fn (
+    type NtReadFile = for<'a> fn(
         &File,
-        event: Option<&crate::object::synchronization::Event>,
         buffer: &'a mut [core::mem::MaybeUninit<u8>],
-        offset: Option<&u64>
+        offset: Option<&u64>,
+        event: Option<&crate::object::synchronization::Event>
     ) -> Result<&'a mut [u8], crate::error::NtStatus>;
+
+    type NtWriteFile = fn(
+        &File,
+        buffer: &[u8],
+        offset: Option<&u64>,
+        event: Option<&crate::object::synchronization::Event>
+    ) -> Result<usize, crate::error::NtStatus>;
 
     #[test]
     fn directory_create_kernel32_path() {
@@ -1370,6 +1761,37 @@ mod tests {
     */
 
     #[test]
+    fn directory_information_nt() {
+        crate::init_syscall_ids();
+
+        let path = String::from(r"\??\C:\Windows\");
+        let path = StringW::from(path.as_ref());
+        let attributes = crate::object::Attributes::from_name(&path);
+
+        for f in &[
+            (
+                Directory::create_ntdll as NtCreateDirectory,
+                Directory::information_ntdll as NtQueryBasicInformationDirectory
+            ), (
+                Directory::create_syscall as NtCreateDirectory,
+                Directory::information_syscall as NtQueryBasicInformationDirectory
+            )
+        ] {
+            let directory = f.0(
+                DirectoryAccessModes::new().set(DirectoryAccessMode::ReadAttributes, true),
+                &attributes,
+                Attributes::new(),
+                ShareModes::all(),
+                CreationDispositionDirectoryNtDll::OpenExisting,
+                CreationOptions::new(),
+                None
+            ).unwrap().0;
+
+            assert_eq!(f.1(&directory).map(|_| ()), Ok(()));
+        }
+    }
+
+    #[test]
     fn file_create_kernel32_path() {
         let paths = &[
             // Non-existent file.
@@ -1448,7 +1870,7 @@ mod tests {
             creation_disposition: CreationDispositionFileKernel32,
             delete_on_close: bool,
             generic_write: bool
-        ) -> Result<Option<crate::error::Status>, crate::error::Status> {
+        ) -> Result<(File, Option<crate::error::Status>), crate::error::Status> {
             File::create_kernel32(
                 path,
                 FileAccessModes::new()
@@ -1459,7 +1881,7 @@ mod tests {
                 Attributes::new()
                     .set(Attribute::DeleteOnClose, delete_on_close),
                 None
-            ).map(|r| r.1)
+            )
         }
 
         // CreateNew
@@ -1469,7 +1891,7 @@ mod tests {
                 CreationDispositionFileKernel32::CreateNew,
                 false,
                 false
-            ),
+            ).map(|r| r.1),
             Ok(None)
         );
         assert_eq!(
@@ -1478,7 +1900,7 @@ mod tests {
                 CreationDispositionFileKernel32::CreateNew,
                 false,
                 false
-            ),
+            ).map(|r| r.1),
             Err(crate::error::StatusValue::FileExists.into())
         );
         assert_eq!(
@@ -1487,7 +1909,7 @@ mod tests {
                 CreationDispositionFileKernel32::OpenExisting,
                 true,
                 false
-            ),
+            ).map(|r| r.1),
             Ok(None)
         );
 
@@ -1498,7 +1920,7 @@ mod tests {
                 CreationDispositionFileKernel32::CreateAlways,
                 false,
                 false
-            ),
+            ).map(|r| r.1),
             Ok(None)
         );
         assert_eq!(
@@ -1507,7 +1929,7 @@ mod tests {
                 CreationDispositionFileKernel32::CreateAlways,
                 true,
                 false
-            ),
+            ).map(|r| r.1),
             Ok(Some(crate::error::StatusValue::AlreadyExists.into()))
         );
 
@@ -1518,7 +1940,7 @@ mod tests {
                 CreationDispositionFileKernel32::OpenExisting,
                 false,
                 false
-            ),
+            ).map(|r| r.1),
             Err(crate::error::StatusValue::FileNotFound.into())
         );
         assert_eq!(
@@ -1527,7 +1949,7 @@ mod tests {
                 CreationDispositionFileKernel32::CreateNew,
                 false,
                 false
-            ),
+            ).map(|r| r.1),
             Ok(None)
         );
         assert_eq!(
@@ -1536,7 +1958,7 @@ mod tests {
                 CreationDispositionFileKernel32::OpenExisting,
                 true,
                 false
-            ),
+            ).map(|r| r.1),
             Ok(None)
         );
 
@@ -1547,7 +1969,7 @@ mod tests {
                 CreationDispositionFileKernel32::OpenAlways,
                 false,
                 false
-            ),
+            ).map(|r| r.1),
             Ok(None)
         );
         assert_eq!(
@@ -1556,7 +1978,7 @@ mod tests {
                 CreationDispositionFileKernel32::OpenAlways,
                 true,
                 false
-            ),
+            ).map(|r| r.1),
             Ok(Some(crate::error::StatusValue::AlreadyExists.into()))
         );
 
@@ -1567,28 +1989,36 @@ mod tests {
                 CreationDispositionFileKernel32::TruncateExisting,
                 false,
                 true
-            ),
+            ).map(|r| r.1),
             Err(crate::error::StatusValue::FileNotFound.into())
         );
-        assert_eq!(
-            create(
-                path,
-                CreationDispositionFileKernel32::CreateNew,
-                false,
-                false
-            ),
-            Ok(None)
-        );
+
+        let file = create(
+            path,
+            CreationDispositionFileKernel32::CreateNew,
+            false,
+            true
+        ).unwrap();
+        assert_eq!(file.1, None);
+
+        // Increase file size.
+        assert_eq!(file.0.write_kernel32(&[1, 2, 3, 4], None), Ok(4));
+
+        // Check the file size.
+        assert_eq!(file.0.information_ntdll().unwrap().file_size, 4);
+
         assert_eq!(
             create(
                 path,
                 CreationDispositionFileKernel32::TruncateExisting,
                 true,
                 true
-            ),
+            ).map(|r| r.1),
             Ok(None)
         );
-        // TODO: Increase file size between the two calls and check it afterwards.
+
+        // Check the truncated file size.
+        assert_eq!(file.0.information_ntdll().unwrap().file_size, 0);
     }
 
     /*
@@ -1757,12 +2187,14 @@ mod tests {
             (
                 Directory::create_ntdll as NtCreateDirectory,
                 File::create_ntdll as NtCreateFile,
-                Object::information_ntdll as NtQueryObjectInformation
+                File::information_ntdll as NtQueryBasicInformationFile,
+                File::write_ntdll as NtWriteFile,
             ),
             (
                 Directory::create_syscall as NtCreateDirectory,
                 File::create_syscall as NtCreateFile,
-                Object::information_syscall as NtQueryObjectInformation
+                File::information_syscall as NtQueryBasicInformationFile,
+                File::write_syscall as NtWriteFile,
             )
         ] {
             let dir = String::from(r"\??\C:\winapi2_file_create_nt_allocation_size\");
@@ -1788,24 +2220,30 @@ mod tests {
 
             let allocation_size = 1;
 
-            #[allow(unused)]
             let file = f.1(
                 FileAccessModes::new()
-                    .set_standard(crate::object::AccessMode::Delete, true),
+                    .set(FileAccessMode::WriteData, true)
+                    .set(FileAccessMode::ReadAttributes, true)
+                    .set_standard(crate::object::AccessMode::Delete, true)
+                    .set_standard(crate::object::AccessMode::Synchronize, true),
                 &attributes,
                 Some(&allocation_size),
                 Attributes::new(),
                 ShareModes::new(),
                 CreationDispositionFileNtDll::CreateNew,
-                CreationOptions::new().set(CreationOption::DeleteOnClose, true),
+                CreationOptions::new()
+                    .set(CreationOption::SynchronousIoNonAlert, true)
+                    .set(CreationOption::DeleteOnClose, true),
                 None
-            ).unwrap();
+            ).unwrap().0;
 
-            let attributes = f.2(&attributes).unwrap();
-
-            assert_eq!(attributes.allocation_size, 0x1000);
-
-            // TODO: Write to the file and check the `allocation_size` again.
+            assert_eq!(f.2(&file).map(|r| (r.allocation_size, r.file_size)), Ok((0x1000, 0)));
+            assert_eq!(f.3(&file, &[0; 0x800], None, None), Ok(0x800));
+            assert_eq!(f.2(&file).map(|r| (r.allocation_size, r.file_size)), Ok((0x1000, 0x800)));
+            assert_eq!(f.3(&file, &[0; 0x800], None, None), Ok(0x800));
+            assert_eq!(f.2(&file).map(|r| (r.allocation_size, r.file_size)), Ok((0x1000, 0x1000)));
+            assert_eq!(f.3(&file, &[0], None, None), Ok(1));
+            assert_eq!(f.2(&file).map(|r| (r.allocation_size, r.file_size)), Ok((0x2000, 0x1001)));
         }
     }
 
@@ -2097,6 +2535,38 @@ mod tests {
     */
 
     #[test]
+    fn file_information_nt() {
+        crate::init_syscall_ids();
+
+        let path = String::from(r"\??\C:\Windows\System32\notepad.exe");
+        let path = StringW::from(path.as_ref());
+        let attributes = crate::object::Attributes::from_name(&path);
+
+        for f in &[
+            (
+                File::create_ntdll as NtCreateFile,
+                File::information_ntdll as NtQueryBasicInformationFile
+            ), (
+                File::create_syscall as NtCreateFile,
+                File::information_syscall as NtQueryBasicInformationFile
+            )
+        ] {
+            let file = f.0(
+                FileAccessModes::new().set(FileAccessMode::ReadAttributes, true),
+                &attributes,
+                None,
+                Attributes::new(),
+                ShareModes::all(),
+                CreationDispositionFileNtDll::OpenExisting,
+                CreationOptions::new(),
+                None
+            ).unwrap().0;
+
+            assert_eq!(f.1(&file).map(|_| ()), Ok(()));
+        }
+    }
+
+    #[test]
     fn file_read_kernel32() {
         let notepad = String::from("C:\\Windows\\notepad.exe\0");
 
@@ -2137,9 +2607,29 @@ mod tests {
             Ok([b'M', b'Z'].as_mut())
         );
 
-        // TODO: Use `SetFilePointerEx` to read the PE header signature like in `file_read_nt`.
+        // Read the offset to the PE header from the DOS header.
+        let mut offset_pe_header = unsafe {
+            core::mem::MaybeUninit::<[core::mem::MaybeUninit<u8>; 4]>::uninit().assume_init()
+        };
+        let offset_pe_header: &u32 = unsafe { crate::conversion::cast_mut(file.read_kernel32(
+            &mut offset_pe_header,
+            Some(&mut crate::io::Overlapped::new(0x3C, None))
+        ).unwrap()).unwrap() };
 
-        // TODO: Use `Overlap` structure.
+        // Read and check the PE header signature.
+        let mut pe_header_signature = unsafe {
+            core::mem::MaybeUninit::<[core::mem::MaybeUninit<u8>; 4]>::uninit().assume_init()
+        };
+        assert_eq!(
+            file.read_kernel32(
+                &mut pe_header_signature,
+                Some(&mut crate::io::Overlapped::new(*offset_pe_header as u64, None))
+            ),
+            // f.1(&file, None, &mut pe_header_signature, Some(&(*offset_pe_header as u64))),
+            Ok([b'P', b'E', 0, 0].as_mut())
+        );
+
+        // TODO: Use asynchronous file handle + `Overlap.event`.
     }
 
     #[test]
@@ -2178,7 +2668,7 @@ mod tests {
             ).unwrap().0;
 
             assert_eq!(
-                f.1(&file, None, &mut mz, None),
+                f.1(&file, &mut mz, None, None),
                 Err(crate::error::NtStatusValue::AccessDenied.into())
             );
 
@@ -2198,7 +2688,7 @@ mod tests {
 
             // Check the DOS header signature.
             assert_eq!(
-                f.1(&file, None, &mut mz, None),
+                f.1(&file, &mut mz, None, None),
                 Ok([b'M', b'Z'].as_mut())
             );
 
@@ -2207,7 +2697,7 @@ mod tests {
                 core::mem::MaybeUninit::<[core::mem::MaybeUninit<u8>; 4]>::uninit().assume_init()
             };
             let offset_pe_header: &u32 = unsafe { crate::conversion::cast_mut(
-                f.1(&file, None, &mut offset_pe_header, Some(&0x3C)).unwrap()
+                f.1(&file, &mut offset_pe_header, Some(&0x3C), None).unwrap()
             ).unwrap() };
 
             // Read and check the PE header signature.
@@ -2215,11 +2705,191 @@ mod tests {
                 core::mem::MaybeUninit::<[core::mem::MaybeUninit<u8>; 4]>::uninit().assume_init()
             };
             assert_eq!(
-                f.1(&file, None, &mut pe_header_signature, Some(&(*offset_pe_header as u64))),
+                f.1(&file, &mut pe_header_signature, Some(&(*offset_pe_header as u64)), None),
                 Ok([b'P', b'E', 0, 0].as_mut())
             );
 
-            // TODO: Use the `event` argument.
+            // TODO: Use asynchronous file handle + the `event` argument.
+        }
+    }
+
+    #[test]
+    fn file_write_kernel32() {
+        let path = String::from("winapi2_file_write_kernel32\0");
+        let path = path.as_ref();
+
+        let file = File::create_kernel32(
+            path,
+            FileAccessModes::new()
+                .set(FileAccessMode::ReadData, true)
+                .set(FileAccessMode::WriteData, true)
+                .set_standard(crate::object::AccessMode::Delete, true),
+            ShareModes::new(),
+            None,
+            CreationDispositionFileKernel32::CreateNew,
+            Attributes::new().set(Attribute::DeleteOnClose, true),
+            None
+        ).unwrap().0;
+
+        let mut buffer = unsafe {
+            core::mem::MaybeUninit::<[core::mem::MaybeUninit<u8>; 10]>::uninit().assume_init()
+        };
+
+        assert_eq!(Object::information_kernel32(path).unwrap().file_size(), 0);
+        assert_eq!(file.read_kernel32(&mut buffer, None), Ok([].as_mut()));
+
+        assert_eq!(file.write_kernel32(&[0, 1, 2], None), Ok(3));
+        assert_eq!(Object::information_kernel32(path).unwrap().file_size(), 3);
+        assert_eq!(file.read_kernel32(&mut buffer, None), Ok([].as_mut()));
+        assert_eq!(
+            file.read_kernel32(&mut buffer, Some(
+                &mut crate::io::Overlapped::new(0, None))
+            ), Ok([0, 1, 2].as_mut())
+        );
+        assert_eq!(
+            file.read_kernel32(&mut buffer, Some(
+                &mut crate::io::Overlapped::new(2, None))
+            ), Ok([2].as_mut())
+        );
+
+        assert_eq!(file.write_kernel32(&[3, 4, 5], None), Ok(3));
+        assert_eq!(Object::information_kernel32(path).unwrap().file_size(), 6);
+        assert_eq!(
+            file.read_kernel32(&mut buffer, Some(
+                &mut crate::io::Overlapped::new(3, None))
+            ), Ok([3, 4, 5].as_mut())
+        );
+        assert_eq!(
+            file.read_kernel32(&mut buffer, Some(
+                &mut crate::io::Overlapped::new(0, None))
+            ), Ok([0, 1, 2, 3, 4, 5].as_mut())
+        );
+
+        assert_eq!(file.write_kernel32(&[6, 7, 8], None), Ok(3));
+        assert_eq!(Object::information_kernel32(path).unwrap().file_size(), 9);
+        assert_eq!(
+            file.read_kernel32(&mut buffer, Some(
+                &mut crate::io::Overlapped::new(0, None))
+            ), Ok([0, 1, 2, 3, 4, 5, 6, 7, 8].as_mut())
+        );
+
+        assert_eq!(file.write_kernel32(&[9, 10, 11], Some(
+            &mut crate::io::Overlapped::new(1, None))
+        ), Ok(3));
+        assert_eq!(Object::information_kernel32(path).unwrap().file_size(), 9);
+        assert_eq!(
+            file.read_kernel32(&mut buffer, Some(
+                &mut crate::io::Overlapped::new(0, None))
+            ), Ok([0, 9, 10, 11, 4, 5, 6, 7, 8].as_mut())
+        );
+        assert_eq!(
+            file.read_kernel32(&mut buffer[..5], Some(
+                &mut crate::io::Overlapped::new(1, None))
+            ), Ok([9, 10, 11, 4, 5].as_mut())
+        );
+
+        assert_eq!(file.write_kernel32(&[0; 0x800], None), Ok(0x800));
+        assert_eq!(Object::information_kernel32(path).unwrap().file_size(), 0x806);
+
+        // TODO: Use asynchronous file handle + `Overlap.event`.
+    }
+
+    #[test]
+    fn file_write_nt() {
+        crate::init_syscall_ids();
+
+        for f in &[
+            (
+                Directory::create_ntdll as NtCreateDirectory,
+                File::create_ntdll as NtCreateFile,
+                File::information_ntdll as NtQueryBasicInformationFile,
+                File::read_ntdll as NtReadFile,
+                File::write_ntdll as NtWriteFile
+            ),
+            (
+                Directory::create_syscall as NtCreateDirectory,
+                File::create_syscall as NtCreateFile,
+                File::information_syscall as NtQueryBasicInformationFile,
+                File::read_syscall as NtReadFile,
+                File::write_syscall as NtWriteFile
+            )
+        ] {
+            let dir = String::from(r"\??\C:\winapi2_file_write_nt\");
+            let dir = StringW::from(dir.as_ref());
+            let dir = crate::object::Attributes::from_name(&dir);
+            #[allow(unused)]
+            let dir = f.0(
+                DirectoryAccessModes::new()
+                    .set(DirectoryAccessMode::List, true)
+                    .set_standard(crate::object::AccessMode::Delete, true),
+                &dir,
+                Attributes::new(),
+                ShareModes::all(),
+                CreationDispositionDirectoryNtDll::CreateNew,
+                CreationOptions::new()
+                    .set(CreationOption::DeleteOnClose, true),
+                None
+            ).unwrap().0;
+
+            let path = String::from(r"\??\C:\winapi2_file_write_nt\winapi2_file_write_nt");
+            let path = StringW::from(path.as_ref());
+            let attributes = crate::object::Attributes::from_name(&path);
+
+            let file = f.1(
+                FileAccessModes::new()
+                    .set(FileAccessMode::ReadAttributes, true)
+                    .set(FileAccessMode::ReadData, true)
+                    .set(FileAccessMode::WriteData, true)
+                    .set_standard(crate::object::AccessMode::Delete, true)
+                    .set_standard(crate::object::AccessMode::Synchronize, true),
+                &attributes,
+                Some(&0x806),
+                Attributes::new(),
+                ShareModes::new(),
+                CreationDispositionFileNtDll::CreateNew,
+                CreationOptions::new()
+                    .set(CreationOption::SynchronousIoNonAlert, true)
+                    .set(CreationOption::DeleteOnClose, true),
+                None
+            ).unwrap().0;
+
+            let mut buffer = unsafe {
+                core::mem::MaybeUninit::<[core::mem::MaybeUninit<u8>; 10]>::uninit().assume_init()
+            };
+
+            assert_eq!(f.2(&file).unwrap().file_size, 0);
+            assert_eq!(
+                f.3(&file, &mut buffer, None, None),
+                Err(crate::error::NtStatusValue::EndOfFile.into())
+            );
+
+            assert_eq!(f.4(&file, &[0, 1, 2], None, None), Ok(3));
+            assert_eq!(f.2(&file).unwrap().file_size, 3);
+            assert_eq!(
+                f.3(&file, &mut buffer, None, None),
+                Err(crate::error::NtStatusValue::EndOfFile.into())
+            );
+            assert_eq!(f.3(&file, &mut buffer, Some(&0), None), Ok([0, 1, 2].as_mut()));
+            assert_eq!(f.3(&file, &mut buffer, Some(&2), None), Ok([2].as_mut()));
+
+            assert_eq!(f.4(&file, &[3, 4, 5], None, None), Ok(3));
+            assert_eq!(f.2(&file).unwrap().file_size, 6);
+            assert_eq!(f.3(&file, &mut buffer, Some(&3), None), Ok([3, 4, 5].as_mut()));
+            assert_eq!(f.3(&file, &mut buffer, Some(&0), None), Ok([0, 1, 2, 3, 4, 5].as_mut()));
+
+            assert_eq!(f.4(&file, &[6, 7, 8], None, None), Ok(3));
+            assert_eq!(f.2(&file).unwrap().file_size, 9);
+            assert_eq!(f.3(&file, &mut buffer, Some(&0), None), Ok([0, 1, 2, 3, 4, 5, 6, 7, 8].as_mut()));
+
+            assert_eq!(f.4(&file, &[9, 10, 11], Some(&1), None), Ok(3));
+            assert_eq!(f.2(&file).unwrap().file_size, 9);
+            assert_eq!(f.3(&file, &mut buffer, Some(&0), None), Ok([0, 9, 10, 11, 4, 5, 6, 7, 8].as_mut()));
+            assert_eq!(f.3(&file, &mut buffer[..5], Some(&1), None), Ok([9, 10, 11, 4, 5].as_mut()));
+
+            assert_eq!(f.4(&file, &[0; 0x800], None, None), Ok(0x800));
+            assert_eq!(f.2(&file).unwrap().file_size, 0x806);
+
+            // TODO: Use asynchronous file handle + the `event` argument.
         }
     }
 

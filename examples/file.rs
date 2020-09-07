@@ -6,9 +6,7 @@ fn main() {
     // Must be the done before any syscall related `winapi2` function is called.
     winapi2::SyscallIds::initialize_10_1909();
 
-    winapi2::println!("┌────────────────────┐");
-    winapi2::println!("│calc.exe information│");
-    winapi2::println!("└────────────────────┘");
+    calc_header_message();
 
     winapi2::print!("1. ");
     calc_architecture();
@@ -43,7 +41,7 @@ fn calc_architecture() {
         core::mem::MaybeUninit::<[core::mem::MaybeUninit<u8>; 2]>::uninit().assume_init()
     };
     assert_eq!(
-        winapi2::File::read_syscall(&file, None, &mut mz, None),
+        winapi2::File::read_syscall(&file, &mut mz, None, None),
         Ok([b'M', b'Z'].as_mut())
     );
 
@@ -52,7 +50,7 @@ fn calc_architecture() {
         core::mem::MaybeUninit::<[core::mem::MaybeUninit<u8>; 4]>::uninit().assume_init()
     };
     let offset_pe_header: &u32 = unsafe { winapi2::conversion::cast_mut(winapi2::File::read_syscall(
-        &file, None, &mut offset_pe_header, Some(&0x3C)
+        &file, &mut offset_pe_header, Some(&0x3C), None
     ).unwrap()).unwrap() };
 
     // Read and check the PE header signature.
@@ -61,7 +59,7 @@ fn calc_architecture() {
     };
     assert_eq!(
         winapi2::File::read_syscall(
-            &file, None, &mut pe_header_signature, Some(&(*offset_pe_header as u64))
+            &file, &mut pe_header_signature, Some(&(*offset_pe_header as u64)), None
         ),
         Ok([b'P', b'E', 0, 0].as_mut())
     );
@@ -71,7 +69,7 @@ fn calc_architecture() {
         core::mem::MaybeUninit::<[core::mem::MaybeUninit<u8>; 2]>::uninit().assume_init()
     };
     let architecture: &u16 = unsafe { winapi2::conversion::cast_mut(winapi2::File::read_syscall(
-        &file, None, &mut architecture, None
+        &file, &mut architecture, None, None
     ).unwrap()).unwrap() };
 
     winapi2::println!("Architecture: {}", match *architecture {
@@ -88,6 +86,59 @@ fn calc_attributes() {
 
     let attributes = Object::attributes_syscall(&object_attributes).unwrap();
     winapi2::println!("Attributes: {}", &attributes);
+}
+
+fn calc_header_message() {
+    let dir = winapi2::string::String::from(r"\??\C:\winapi2_file_hello_world\");
+    let dir = winapi2::string::StringW::from(dir.as_ref());
+    let dir = winapi2::object::Attributes::from_name(&dir);
+
+    #[allow(unused)]
+    let dir = Directory::create_syscall(
+        DirectoryAccessModes::new()
+            .set(DirectoryAccessMode::List, true)
+            .set_standard(winapi2::object::AccessMode::Delete, true),
+        &dir,
+        Attributes::new(),
+        ShareModes::all(),
+        CreationDispositionDirectoryNtDll::CreateNew,
+        CreationOptions::new()
+            .set(CreationOption::DeleteOnClose, true),
+        None
+    ).unwrap().0;
+
+    let path = winapi2::string::String::from(r"\??\C:\winapi2_file_hello_world\winapi2_file_hello_world");
+    let path = winapi2::string::StringW::from(path.as_ref());
+    let attributes = winapi2::object::Attributes::from_name(&path);
+
+    let file = File::create_syscall(
+        FileAccessModes::new()
+            .set(FileAccessMode::ReadData, true)
+            .set(FileAccessMode::WriteData, true)
+            .set_standard(winapi2::object::AccessMode::Delete, true)
+            .set_standard(winapi2::object::AccessMode::Synchronize, true),
+        &attributes,
+        None,
+        Attributes::new(),
+        ShareModes::new(),
+        CreationDispositionFileNtDll::CreateNew,
+        CreationOptions::new()
+            .set(CreationOption::SynchronousIoNonAlert, true)
+            .set(CreationOption::DeleteOnClose, true),
+        None
+    ).unwrap().0;
+
+    file.write_syscall("┌────────────────────┐\n".as_bytes(), None, None).unwrap();
+    file.write_syscall("│calc.exe information│\n".as_bytes(), None, None).unwrap();
+    file.write_syscall("└────────────────────┘\n".as_bytes(), None, None).unwrap();
+
+    let mut content = unsafe {
+        core::mem::MaybeUninit::<[core::mem::MaybeUninit<u8>; 170]>::uninit().assume_init()
+    };
+    let message = alloc::string::String::from_utf8_lossy(
+        file.read_syscall(&mut content, Some(&0), None).unwrap()
+    );
+    winapi2::print!("{}", message);
 }
 
 fn calc_information() {

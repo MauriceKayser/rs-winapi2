@@ -9,13 +9,13 @@ pub struct CpuAffinityMask(bitfield::BitField64);
 
 impl CpuAffinityMask {
     /// Creates a new instance with no cpu affinities set.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub const fn new() -> Self {
         Self(bitfield::BitField64::new())
     }
 
     /// Returns `true` if the affinity for the cpu is set, `false` otherwise. `index` must be < 64.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub const fn cpu(&self, index: u8) -> bool {
         // TODO: Wait for https://github.com/rust-lang/rust/issues/51999.
         //assert!(index < 64);
@@ -25,7 +25,7 @@ impl CpuAffinityMask {
 
     /// Returns a new instance with the affinity for the cpu specified via `index` set to `value`.
     /// `index` must be < 64.
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     pub const fn set_cpu(&self, index: u8, value: bool) -> Self {
         // TODO: Wait for https://github.com/rust-lang/rust/issues/51999.
         // assert!(index < 64);

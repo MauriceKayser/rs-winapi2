@@ -22,7 +22,7 @@ pub struct SystemHeapKernel32 {
 }
 
 unsafe impl core::alloc::GlobalAlloc for SystemHeapKernel32 {
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     unsafe fn alloc(&self, layout: core::alloc::Layout) -> *mut u8 {
         crate::dll::kernel32::GetProcessHeap().map(|heap| crate::dll::kernel32::HeapAlloc(
             heap,
@@ -31,7 +31,7 @@ unsafe impl core::alloc::GlobalAlloc for SystemHeapKernel32 {
         )).unwrap_or(0 as *mut _)
     }
 
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     unsafe fn dealloc(&self, memory: *mut u8, layout: core::alloc::Layout) {
         if self.clear {
             core::ptr::write_bytes(memory, 0, layout.size());
@@ -46,7 +46,7 @@ unsafe impl core::alloc::GlobalAlloc for SystemHeapKernel32 {
         }
     }
 
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     unsafe fn alloc_zeroed(&self, layout: core::alloc::Layout) -> *mut u8 {
         crate::dll::kernel32::GetProcessHeap().map(|heap| crate::dll::kernel32::HeapAlloc(
             heap,
@@ -67,7 +67,7 @@ pub struct SystemHeapNtDll {
 }
 
 unsafe impl core::alloc::GlobalAlloc for SystemHeapNtDll {
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     unsafe fn alloc(&self, layout: core::alloc::Layout) -> *mut u8 {
         let mut heap = core::mem::MaybeUninit::uninit();
         if crate::dll::ntdll::RtlGetProcessHeaps(1, heap.as_mut_ptr()) < 1 {
@@ -81,7 +81,7 @@ unsafe impl core::alloc::GlobalAlloc for SystemHeapNtDll {
         )
     }
 
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     unsafe fn dealloc(&self, memory: *mut u8, layout: core::alloc::Layout) {
         if self.clear {
             core::ptr::write_bytes(memory, 0, layout.size());
@@ -99,7 +99,7 @@ unsafe impl core::alloc::GlobalAlloc for SystemHeapNtDll {
         }
     }
 
-    #[inline(always)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
     unsafe fn alloc_zeroed(&self, layout: core::alloc::Layout) -> *mut u8 {
         let mut heap = core::mem::MaybeUninit::uninit();
         if crate::dll::ntdll::RtlGetProcessHeaps(1, heap.as_mut_ptr()) < 1 {
