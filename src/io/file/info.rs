@@ -49,7 +49,7 @@ pub struct BasicNtDll {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use crate::string::*;
 
     #[test]

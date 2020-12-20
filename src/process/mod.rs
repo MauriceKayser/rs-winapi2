@@ -38,29 +38,55 @@ pub enum AccessMode {
 }
 
 /// Official documentation: [CLIENT_ID struct](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/a11e7129-685b-4535-8d37-21d4596ac057).
+#[derive(Debug)]
 #[repr(C)]
 pub struct ClientId {
-    pub(crate) process: usize,
-    pub(crate) thread: usize
+    process_: Option<core::num::NonZeroUsize>,
+    thread_: Option<core::num::NonZeroUsize>
 }
 
 impl ClientId {
     /// Creates a new instance.
     #[cfg_attr(not(debug_assertions), inline(always))]
     pub const fn new(process: u32, thread: u32) -> Self {
-        Self { process: process as usize, thread: thread as usize }
+        Self {
+            process_: core::num::NonZeroUsize::new(process as usize),
+            thread_: core::num::NonZeroUsize::new(thread as usize)
+        }
     }
 
     /// Creates an instance from a process object id.
     #[cfg_attr(not(debug_assertions), inline(always))]
     pub const fn from_process_id(id: u32) -> Self {
-        Self { process: id as usize, thread: 0 }
+        Self {
+            process_: core::num::NonZeroUsize::new(id as usize),
+            thread_: None
+        }
     }
 
     /// Creates an instance from a thread object id.
     #[cfg_attr(not(debug_assertions), inline(always))]
     pub const fn from_thread_id(id: u32) -> Self {
-        Self { process: 0, thread: id as usize }
+        Self {
+            process_: None,
+            thread_: core::num::NonZeroUsize::new(id as usize)
+        }
+    }
+
+    /// Returns the process object id.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn process(&self) -> Option<core::num::NonZeroU32> {
+        self.process_.map(|v| unsafe {
+            core::num::NonZeroU32::new_unchecked(v.get() as u32)
+        })
+    }
+
+    /// Returns the thread object id.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn thread(&self) -> Option<core::num::NonZeroU32> {
+        self.thread_.map(|v| unsafe {
+            core::num::NonZeroU32::new_unchecked(v.get() as u32)
+        })
     }
 }
 

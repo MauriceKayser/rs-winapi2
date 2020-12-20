@@ -6,6 +6,10 @@ pub mod ntfs;
 /// Official documentation: [FILE_ATTRIBUTE_* & FILE_FLAG_* enums](https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew).
 ///
 /// Official documentation: [FILE_ATTRIBUTE_* enum](https://docs.microsoft.com/en-us/windows/win32/fileio/file-attribute-constants).
+///
+/// Official documentation: [FILE_FLAG_* enum](https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createnamedpipea).
+///
+/// Unofficial documentation: [DOS/Windows file attributes](http://justsolve.archiveteam.org/wiki/DOS/Windows_file_attributes).
 #[bitfield::bitfield(32)]
 #[derive(Copy, Clone, Debug, Display, Eq, PartialEq)]
 pub struct Attributes(pub Attribute);
@@ -14,6 +18,10 @@ pub struct Attributes(pub Attribute);
 /// Official documentation: [FILE_ATTRIBUTE_* & FILE_FLAG_* enums](https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew).
 ///
 /// Official documentation: [FILE_ATTRIBUTE_* enum](https://docs.microsoft.com/en-us/windows/win32/fileio/file-attribute-constants).
+///
+/// Official documentation: [FILE_FLAG_* enum](https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createnamedpipea).
+///
+/// Unofficial documentation: [DOS/Windows file attributes](http://justsolve.archiveteam.org/wiki/DOS/Windows_file_attributes).
 #[allow(missing_docs)]
 #[derive(Copy, Clone, Debug, bitfield::Flags)]
 #[repr(u8)]
@@ -21,7 +29,9 @@ pub enum Attribute {
     ReadOnly,
     Hidden,
     System,
-    Directory = 4,
+    // Deprecated
+    DosVolumeLabel,
+    Directory,
     Archive,
     Device,
     Normal,
@@ -36,7 +46,8 @@ pub enum Attribute {
     Virtual,
     NoScrubData,
     RecallOnOpen,
-    OpenNoRecall = 20,
+    FirstPipeInstance,
+    OpenNoRecall,
     OpenReParsePoint,
     RecallOnDataAccess,
     SessionAware,
@@ -445,9 +456,9 @@ impl File {
         #[cfg(not(any(winapi = "native", winapi = "syscall")))]
         { self.read_kernel32(buffer, None).map_err(|e| crate::error::Error::Status(e)) }
         #[cfg(winapi = "native")]
-        { self.read_ntdll(None, buffer, None).map_err(|e| crate::error::Error::NtStatus(e)) }
+        { self.read_ntdll(buffer, None, None).map_err(|e| crate::error::Error::NtStatus(e)) }
         #[cfg(winapi = "syscall")]
-        { self.read_syscall(None, buffer, None).map_err(|e| crate::error::Error::NtStatus(e)) }
+        { self.read_syscall(buffer, None, None).map_err(|e| crate::error::Error::NtStatus(e)) }
     }
 
     // TODO: Enable this once array lengths support generic parameters (see [#43408](https://github.com/rust-lang/rust/issues/43408)).
@@ -865,8 +876,8 @@ pub(crate) enum Information {
     Pipe,
     PipeLocal,
     PipeRemote,
-    MailslotQuery,
-    MailslotSet,
+    MailSlotQuery,
+    MailSlotSet,
     Compression,
     ObjectId,
     Completion,
@@ -1591,7 +1602,7 @@ mod tests {
                 // TODO: Understand Microsoft's description and test `OpenIf`.
                 // TODO: Check `OpenLink` once creating symbolic links is implemented.
                 // TODO: Are `KernelHandle` and `ForceAccessCheck` testable in user mode?
-                // TODO: Check `IgnoreImpersonatedDeviceMap` somehow.
+                // TODO: Check `IgnoreImpersonatedDeviceMap` & `DoNotReparse` somehow.
             }
 
             // security_descriptor
@@ -2155,7 +2166,7 @@ mod tests {
                 // TODO: Understand Microsoft's description and test `OpenIf`.
                 // TODO: Check `OpenLink` once creating symbolic links is implemented.
                 // TODO: Are `KernelHandle` and `ForceAccessCheck` testable in user mode?
-                // TODO: Check `IgnoreImpersonatedDeviceMap` somehow.
+                // TODO: Check `IgnoreImpersonatedDeviceMap` & `DoNotReparse` somehow.
             }
 
             // security_descriptor

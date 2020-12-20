@@ -15,6 +15,7 @@ pub type StatusResult = Option<Status>;
 /// An instance of this type is returned from functions that internally call Windows API functions
 /// which return either a `Status` or an `NtStatus`.
 #[allow(missing_docs)]
+#[derive(Debug)]
 pub enum Error {
     NtStatus(NtStatus),
     Status(Status)

@@ -329,7 +329,7 @@ pub struct InformationThread {
     pub create_time: crate::io::file::Time,
     pub wait_time: u32,
     pub start_address: usize,
-    id_: crate::process::ClientId,
+    pub id: crate::process::ClientId,
     priority_: i32,
     base_priority_: i32,
     pub context_switches: u32,
@@ -342,12 +342,6 @@ impl InformationThread {
     #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn base_priority(&self) -> Result<crate::process::thread::PriorityLevel, i32> {
         core::convert::TryFrom::try_from(self.base_priority_)
-    }
-
-    #[allow(missing_docs)]
-    #[cfg_attr(not(debug_assertions), inline(always))]
-    pub const fn id(&self) -> u32 {
-        self.id_.thread as u32
     }
 
     #[allow(missing_docs)]
@@ -377,7 +371,7 @@ impl core::fmt::Debug for InformationThread {
             .field(stringify!(create_time), &self.create_time)
             .field(stringify!(wait_time), &self.wait_time)
             .field(stringify!(start_address), &self.start_address)
-            .field(stringify!(id), &self.id())
+            .field(stringify!(id), &self.id)
             .field(stringify!(priority), &self.priority())
             .field(stringify!(base_priority), &self.base_priority())
             .field(stringify!(context_switches), &self.context_switches)

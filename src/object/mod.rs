@@ -16,6 +16,7 @@ pub enum AccessMode {
     WriteOwner,
     Synchronize,
     SystemSecurity = 24,
+    MaximumAllowed,
     GenericAll = 28,
     GenericExecute,
     GenericWrite,
@@ -97,7 +98,8 @@ pub enum AttributeFlag {
     OpenLink,
     KernelHandle,
     ForceAccessCheck,
-    IgnoreImpersonatedDeviceMap
+    IgnoreImpersonatedDeviceMap,
+    DoNotReparse
 }
 
 /// Stores the necessary information to manipulate an object directory in the object manager
