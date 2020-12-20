@@ -38,55 +38,29 @@ pub enum AccessMode {
 }
 
 /// Official documentation: [CLIENT_ID struct](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/a11e7129-685b-4535-8d37-21d4596ac057).
+#[allow(missing_docs)]
 #[derive(Debug)]
 #[repr(C)]
 pub struct ClientId {
-    process_: Option<core::num::NonZeroUsize>,
-    thread_: Option<core::num::NonZeroUsize>
+    pub process: Option<Id>,
+    pub thread: Option<thread::Id>
 }
 
-impl ClientId {
-    /// Creates a new instance.
-    #[cfg_attr(not(debug_assertions), inline(always))]
-    pub const fn new(process: u32, thread: u32) -> Self {
-        Self {
-            process_: core::num::NonZeroUsize::new(process as usize),
-            thread_: core::num::NonZeroUsize::new(thread as usize)
-        }
-    }
+/// The identifier (kernel handle) of a process object.
+#[derive(Copy, Clone, Eq, PartialEq)]
+#[repr(transparent)]
+pub struct Id(crate::object::Id);
 
-    /// Creates an instance from a process object id.
-    #[cfg_attr(not(debug_assertions), inline(always))]
-    pub const fn from_process_id(id: u32) -> Self {
-        Self {
-            process_: core::num::NonZeroUsize::new(id as usize),
-            thread_: None
-        }
+impl Id {
+    /// Undocumented: the system process id is `4` (index: `1`) on XP and later systems.
+    pub const unsafe fn system() -> Self {
+        Self(crate::object::Id::from(core::num::NonZeroUsize::new_unchecked(4)))
     }
+}
 
-    /// Creates an instance from a thread object id.
-    #[cfg_attr(not(debug_assertions), inline(always))]
-    pub const fn from_thread_id(id: u32) -> Self {
-        Self {
-            process_: None,
-            thread_: core::num::NonZeroUsize::new(id as usize)
-        }
-    }
-
-    /// Returns the process object id.
-    #[cfg_attr(not(debug_assertions), inline(always))]
-    pub fn process(&self) -> Option<core::num::NonZeroU32> {
-        self.process_.map(|v| unsafe {
-            core::num::NonZeroU32::new_unchecked(v.get() as u32)
-        })
-    }
-
-    /// Returns the thread object id.
-    #[cfg_attr(not(debug_assertions), inline(always))]
-    pub fn thread(&self) -> Option<core::num::NonZeroU32> {
-        self.thread_.map(|v| unsafe {
-            core::num::NonZeroU32::new_unchecked(v.get() as u32)
-        })
+impl core::fmt::Debug for Id {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        f.write_fmt(format_args!("{}", self.0))
     }
 }
 
@@ -206,7 +180,9 @@ impl Process {
     /// Returns an instance which uses a pseudo handle with all access to the current process.
     #[cfg_attr(not(debug_assertions), inline(always))]
     pub const fn current() -> Self {
-        Self(crate::object::Handle::from(unsafe { core::num::NonZeroIsize::new_unchecked(-1) }))
+        Self(crate::object::Handle::from(unsafe {
+            core::num::NonZeroUsize::new_unchecked(-1isize as usize)
+        }))
     }
 
     /// Official documentation: [PROCESS_BASIC_INFORMATION struct](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationprocess#process_basic_information).
@@ -355,14 +331,14 @@ impl Process {
     ///
     /// Tries to open an existing local process object.
     #[cfg_attr(not(debug_assertions), inline(always))]
-    pub fn open(id: u32, access_modes: AccessModes, inherit_handles: bool)
+    pub fn open(id: Id, access_modes: AccessModes, inherit_handles: bool)
         -> Result<Self, crate::error::Error>
     {
         #[cfg(not(any(winapi = "native", winapi = "syscall")))]
         { Self::open_kernel32(id, access_modes, inherit_handles).map_err(|e| crate::error::Error::Status(e)) }
         #[cfg(any(winapi = "native", winapi = "syscall"))]
         {
-            let client_id = ClientId::from_process_id(id);
+            let client_id = ClientId { process: Some(id), thread: None };
             let attributes = crate::object::Attributes::new(
                 None,
                 None,
@@ -378,12 +354,21 @@ impl Process {
     }
 
     /// Tries to open an existing local process object.
+    ///
+    /// The `id` must be `<= u32.MAX` because `OpenProcess` takes a `u32` instead of a `usize`.
     #[cfg_attr(not(debug_assertions), inline(always))]
-    pub fn open_kernel32(id: u32, access_modes: AccessModes, inherit_handles: bool)
+    pub fn open_kernel32(id: Id, access_modes: AccessModes, inherit_handles: bool)
         -> Result<Self, crate::error::Status>
     {
+        #[cfg(not(target_pointer_width = "32"))]
+        if id.0.value().get() as usize > u32::MAX as usize {
+            return Err(crate::error::StatusValue::InvalidParameter.into());
+        }
+
         let handle = unsafe { crate::dll::kernel32::OpenProcess(
-            access_modes, crate::types::Boolean::from(inherit_handles), id
+            access_modes,
+            crate::types::Boolean::from(inherit_handles),
+            id.0.value().get() as usize as u32
         ) };
         match handle {
             Some(handle) => Ok(Self(handle)),
@@ -555,7 +540,7 @@ mod tests {
         let snapshot = Process::iter_ntdll().unwrap();
 
         let snap_me = snapshot.iter(true).filter(
-            |entry| entry.process.id() == info_all.id()
+            |entry| entry.process.id == info_all.id
         ).collect::<Vec<_>>();
 
         assert_eq!(snap_me.len(), 1);
@@ -567,7 +552,7 @@ mod tests {
         assert!(snap_me.process.image_name().ends_with(".exe"));
 
         let me_limited = Process::open_ntdll(
-            &ClientId::from_process_id(info_all.id()),
+            &ClientId { process: info_all.id, thread: None },
             AccessModes::new().set_mode(AccessMode::QueryLimitedInformation, true),
             &crate::object::Attributes::new(
                 None,
@@ -579,7 +564,7 @@ mod tests {
         ).unwrap();
         let info_limited = me_limited.information_ntdll().unwrap();
 
-        assert_eq!(info_all.id(), info_limited.id());
+        assert_eq!(info_all.id, info_limited.id);
     }
 
     #[test]
@@ -591,7 +576,7 @@ mod tests {
         let snapshot = Process::iter_syscall().unwrap();
 
         let snap_me = snapshot.iter(true).filter(
-            |entry| entry.process.id() == info_all.id()
+            |entry| entry.process.id == info_all.id
         ).collect::<Vec<_>>();
 
         assert_eq!(snap_me.len(), 1);
@@ -603,7 +588,7 @@ mod tests {
         assert!(snap_me.process.image_name().ends_with(".exe"));
 
         let me_limited = Process::open_syscall(
-            &ClientId::from_process_id(info_all.id()),
+            &ClientId { process: info_all.id, thread: None },
             AccessModes::new().set_mode(AccessMode::QueryLimitedInformation, true),
             &crate::object::Attributes::new(
                 None,
@@ -615,6 +600,6 @@ mod tests {
         ).unwrap();
         let info_limited = me_limited.information_syscall().unwrap();
 
-        assert_eq!(info_all.id(), info_limited.id());
+        assert_eq!(info_all.id, info_limited.id);
     }
 }

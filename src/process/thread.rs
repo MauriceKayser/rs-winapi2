@@ -62,6 +62,17 @@ impl core::fmt::Display for CpuAffinityMask {
     }
 }
 
+/// The identifier (kernel handle) of a thread object.
+#[derive(Copy, Clone, Eq, PartialEq)]
+#[repr(transparent)]
+pub struct Id(crate::object::Id);
+
+impl core::fmt::Debug for Id {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        f.write_fmt(format_args!("{}", self.0))
+    }
+}
+
 /// Official documentation [ThreadPriorityLevel enum](https://docs.microsoft.com/en-us/dotnet/api/system.diagnostics.threadprioritylevel).
 #[allow(missing_docs)]
 #[derive(Copy, Clone, Debug, bitfield::FromPrimitive)]

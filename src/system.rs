@@ -230,8 +230,8 @@ pub struct InformationProcess<'a> {
     pub kernel_time: i64,
     image_name_: crate::string::StringW<'a>,
     base_priority_: i32,
-    id_: usize,
-    inherited_from_id_: usize,
+    pub id: Option<crate::process::Id>,
+    pub inherited_from_id: Option<crate::process::Id>,
     pub handle_count: u32,
     pub session_id: u32,
     pub key: usize,
@@ -264,20 +264,8 @@ impl<'a> InformationProcess<'a> {
 
     #[allow(missing_docs)]
     #[cfg_attr(not(debug_assertions), inline(always))]
-    pub const fn id(&self) -> u32 {
-        self.id_ as u32
-    }
-
-    #[allow(missing_docs)]
-    #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn image_name(&'a self) -> &'a crate::string::Str {
         (&self.image_name_).into()
-    }
-
-    #[allow(missing_docs)]
-    #[cfg_attr(not(debug_assertions), inline(always))]
-    pub const fn inherited_from_id(&self) -> u32 {
-        self.inherited_from_id_ as u32
     }
 }
 
@@ -293,8 +281,8 @@ impl<'a> core::fmt::Debug for InformationProcess<'a> {
             .field(stringify!(kernel_time), &self.kernel_time)
             .field(stringify!(image_name), &self.image_name())
             .field(stringify!(base_priority), &self.base_priority())
-            .field(stringify!(id), &self.id())
-            .field(stringify!(inherited_from_id), &self.inherited_from_id())
+            .field(stringify!(id), &self.id)
+            .field(stringify!(inherited_from_id), &self.inherited_from_id)
             .field(stringify!(handle_count), &self.handle_count)
             .field(stringify!(session_id), &self.session_id)
             .field(stringify!(key), &self.key)

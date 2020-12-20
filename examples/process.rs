@@ -23,7 +23,11 @@ fn print_self_info() {
         "could not query basic information"
     );
 
-    winapi2::println!("I am: {}, parent is {}.", information.id(), information.inherited_from_id());
+    winapi2::println!(
+        "I am: {:?}, parent is {:?}.",
+        information.id.unwrap(),
+        information.inherited_from_id
+    );
 }
 
 fn list_processes() {
@@ -33,8 +37,8 @@ fn list_processes() {
 
     for entry in processes.iter(true) {
         winapi2::print!(
-            "\n{:8} {} ({} thread{})",
-            entry.process.id(), entry.process.image_name(),
+            "\n{:?} {} ({} thread{})",
+            entry.process.id, entry.process.image_name(),
             entry.threads.len(), if entry.threads.len() != 1 {"s"} else {""}
         );
     }
@@ -45,7 +49,10 @@ fn list_processes() {
 fn try_terminate_system() {
     winapi2::print!("Opening SYSTEM process.. ");
 
-    let client_id = ClientId::from_process_id(4);
+    let client_id = ClientId {
+        process: Some(unsafe { winapi2::process::Id::system() }),
+        thread: None
+    };
     let attributes = winapi2::object::Attributes::new(
         None,
         None,

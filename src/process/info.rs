@@ -10,8 +10,8 @@ pub struct Basic {
     pub process_environment_block: usize,
     pub affinity_mask: super::thread::CpuAffinityMask,
     base_priority_: isize,
-    id_: usize,
-    inherited_from_id_: usize
+    pub id: Option<super::Id>,
+    pub inherited_from_id: Option<super::Id>
 }
 
 impl Basic {
@@ -23,18 +23,6 @@ impl Basic {
         }
         core::convert::TryFrom::try_from(self.base_priority_ as i32).map_err(|_| self.base_priority_)
     }
-
-    #[allow(missing_docs)]
-    #[cfg_attr(not(debug_assertions), inline(always))]
-    pub const fn id(&self) -> u32 {
-        self.id_ as u32
-    }
-
-    #[allow(missing_docs)]
-    #[cfg_attr(not(debug_assertions), inline(always))]
-    pub const fn inherited_from_id(&self) -> u32 {
-        self.inherited_from_id_ as u32
-    }
 }
 
 impl core::fmt::Debug for Basic {
@@ -44,8 +32,8 @@ impl core::fmt::Debug for Basic {
             .field(stringify!(process_environment_block), &self.process_environment_block)
             .field(stringify!(affinity_mask), &self.affinity_mask)
             .field(stringify!(base_priority), &self.base_priority())
-            .field(stringify!(id), &self.id())
-            .field(stringify!(inherited_from_id), &self.inherited_from_id())
+            .field(stringify!(id), &self.id)
+            .field(stringify!(inherited_from_id), &self.inherited_from_id)
             .finish()
     }
 }
