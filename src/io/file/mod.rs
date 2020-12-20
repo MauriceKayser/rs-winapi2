@@ -3,24 +3,19 @@
 pub mod info;
 pub mod ntfs;
 
-use enum_extensions::{FromPrimitive, Iterator};
-
-bitfield::bit_field!(
-    /// Official documentation: [FILE_ATTRIBUTE_* & FILE_FLAG_* enums](https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew).
-    ///
-    /// Official documentation: [FILE_ATTRIBUTE_* enum](https://docs.microsoft.com/en-us/windows/win32/fileio/file-attribute-constants).
-    #[derive(Copy, Clone, Eq, PartialEq)]
-    pub Attributes: u32;
-    flags:
-        pub has + pub set: Attribute
-);
+/// Official documentation: [FILE_ATTRIBUTE_* & FILE_FLAG_* enums](https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew).
+///
+/// Official documentation: [FILE_ATTRIBUTE_* enum](https://docs.microsoft.com/en-us/windows/win32/fileio/file-attribute-constants).
+#[bitfield::bitfield(32)]
+#[derive(Copy, Clone, Debug, Display, Eq, PartialEq)]
+pub struct Attributes(pub Attribute);
 
 // TODO: Security flags for Pipes.
 /// Official documentation: [FILE_ATTRIBUTE_* & FILE_FLAG_* enums](https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew).
 ///
 /// Official documentation: [FILE_ATTRIBUTE_* enum](https://docs.microsoft.com/en-us/windows/win32/fileio/file-attribute-constants).
 #[allow(missing_docs)]
-#[derive(Copy, Clone, Debug, Iterator)]
+#[derive(Copy, Clone, Debug, bitfield::Flags)]
 #[repr(u8)]
 pub enum Attribute {
     ReadOnly,
@@ -56,7 +51,7 @@ pub enum Attribute {
 }
 
 /// Official documentation: [GET_FILEEX_INFO_LEVELS enum](https://docs.microsoft.com/en-us/windows/win32/api/minwinbase/ne-minwinbase-get_fileex_info_levels).
-#[derive(Copy, Clone, Debug, Iterator)]
+#[derive(Copy, Clone, Debug)]
 #[repr(C)]
 pub(crate) enum AttributeInfoLevel {
     Standard
@@ -64,7 +59,7 @@ pub(crate) enum AttributeInfoLevel {
 
 /// Official documentation: [CreationDisposition enum](https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew).
 #[allow(missing_docs)]
-#[derive(Copy, Clone, Debug, Iterator)]
+#[derive(Copy, Clone, Debug)]
 #[repr(u32)]
 pub enum CreationDispositionDirectoryKernel32 {
     CreateNew = 1,
@@ -74,7 +69,7 @@ pub enum CreationDispositionDirectoryKernel32 {
 
 /// Official documentation: [CreationDisposition enum](https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew).
 #[allow(missing_docs)]
-#[derive(Copy, Clone, Debug, Iterator)]
+#[derive(Copy, Clone, Debug)]
 #[repr(u32)]
 pub enum CreationDispositionFileKernel32 {
     CreateNew = 1,
@@ -86,7 +81,7 @@ pub enum CreationDispositionFileKernel32 {
 
 /// Official documentation: [CreationDisposition enum](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntcreatefile).
 #[allow(missing_docs)]
-#[derive(Copy, Clone, Debug, Iterator)]
+#[derive(Copy, Clone, Debug)]
 #[repr(u32)]
 pub enum CreationDispositionDirectoryNtDll {
     OpenExisting = 1,
@@ -96,7 +91,7 @@ pub enum CreationDispositionDirectoryNtDll {
 
 /// Official documentation: [CreationDisposition enum](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntcreatefile).
 #[allow(missing_docs)]
-#[derive(Copy, Clone, Debug, Iterator)]
+#[derive(Copy, Clone, Debug)]
 #[repr(u32)]
 pub enum CreationDispositionFileNtDll {
     CreateAlways,
@@ -107,21 +102,18 @@ pub enum CreationDispositionFileNtDll {
     TruncateAlways
 }
 
-bitfield::bit_field!(
-    /// Official documentation: [CreationOptions enum](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntcreatefile).
-    ///
-    /// Unofficial documentation: [FILE_* enum](https://github.com/processhacker/processhacker/blob/master/phnt/include/ntioapi.h).
-    #[derive(Copy, Clone, Eq, PartialEq)]
-    pub CreationOptions: u32;
-    flags:
-        pub has + pub set: CreationOption
-);
+/// Official documentation: [CreationOptions enum](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntcreatefile).
+///
+/// Unofficial documentation: [FILE_* enum](https://github.com/processhacker/processhacker/blob/master/phnt/include/ntioapi.h).
+#[bitfield::bitfield(32)]
+#[derive(Copy, Clone, Debug, Display, Eq, PartialEq)]
+pub struct CreationOptions(pub CreationOption);
 
 /// Official documentation: [CreationOptions enum](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntcreatefile).
 ///
 /// Unofficial documentation: [FILE_* enum](https://github.com/processhacker/processhacker/blob/master/phnt/include/ntioapi.h).
 #[allow(missing_docs)]
-#[derive(Copy, Clone, Debug, Iterator)]
+#[derive(Copy, Clone, Debug, bitfield::Flags)]
 #[repr(u8)]
 pub enum CreationOption {
     DirectoryFile,
@@ -180,7 +172,7 @@ impl Directory {
                 ) }.to_status_result() { return Err(status); }
 
                 Object::create_kernel32(
-                    path, access_modes.0.value(), share_modes, security_descriptor,
+                    path, access_modes.0, share_modes, security_descriptor,
                     CreationDispositionDirectoryKernel32::OpenExisting as u32,
                     attributes, template
                 ).map(|result| (Self(result.0), result.1))
@@ -204,7 +196,7 @@ impl Directory {
                 }
 
                 Object::create_kernel32(
-                    path, access_modes.0.value(), share_modes, security_descriptor,
+                    path, access_modes.0, share_modes, security_descriptor,
                     creation_disposition as u32,
                     attributes, template
                 ).map(|result| (Self(result.0), status))
@@ -217,7 +209,7 @@ impl Directory {
                 }
 
                 Object::create_kernel32(
-                    path, access_modes.0.value(), share_modes, security_descriptor,
+                    path, access_modes.0, share_modes, security_descriptor,
                     creation_disposition as u32, attributes, template
                 ).map(|result| (Self(result.0), result.1))
             }
@@ -242,7 +234,7 @@ impl Directory {
     ) -> Result<(Self, IoStatus), crate::error::NtStatus> {
         // `allocation_size` is always ignored for directories by Windows.
         Object::create_ntdll(
-            access_modes.0.value(), object_attributes, None, attributes,
+            access_modes.0, object_attributes, None, attributes,
             share_modes, creation_disposition as u32,
             creation_options
                 .set(CreationOption::DirectoryFile, true)
@@ -269,7 +261,7 @@ impl Directory {
     ) -> Result<(Self, IoStatus), crate::error::NtStatus> {
         // `allocation_size` is always ignored for directories by Windows.
         Object::create_syscall(
-            access_modes.0.value(), object_attributes, None, attributes,
+            access_modes.0, object_attributes, None, attributes,
             share_modes, creation_disposition as u32,
             creation_options
                 .set(CreationOption::DirectoryFile, true)
@@ -306,18 +298,17 @@ impl core::ops::Drop for Directory {
     }
 }
 
-bitfield::bit_field!(
-    /// Official documentation: [File Security and Access Rights](https://docs.microsoft.com/en-us/windows/win32/fileio/file-security-and-access-rights).
-    #[derive(Copy, Clone, Eq, PartialEq)]
-    pub DirectoryAccessModes: u32;
-    flags:
-        pub has          + pub set:          DirectoryAccessMode,
-        pub has_standard + pub set_standard: crate::object::AccessMode
-);
+/// Official documentation: [File Security and Access Rights](https://docs.microsoft.com/en-us/windows/win32/fileio/file-security-and-access-rights).
+#[bitfield::bitfield(32)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub struct DirectoryAccessModes {
+    pub mode: DirectoryAccessMode,
+    pub standard: crate::object::AccessMode
+}
 
 /// Official documentation: [File Security and Access Rights](https://docs.microsoft.com/en-us/windows/win32/fileio/file-security-and-access-rights).
 #[allow(missing_docs)]
-#[derive(Copy, Clone, Debug, Iterator)]
+#[derive(Copy, Clone, Debug, bitfield::Flags)]
 #[repr(u8)]
 pub enum DirectoryAccessMode {
     List,
@@ -357,7 +348,7 @@ impl File {
         }
 
         Object::create_kernel32(
-            path, access_modes.0.value(), share_modes,
+            path, access_modes.0, share_modes,
             security_descriptor, creation_disposition as u32, attributes, template
         ).map(|result| (Self(result.0), result.1))
     }
@@ -382,7 +373,7 @@ impl File {
         extended_attributes: Option<(&crate::io::file::ntfs::ExtendedAttributesInformation, u32)>
     ) -> Result<(Self, IoStatus), crate::error::NtStatus> {
         Object::create_ntdll(
-            access_modes.0.value(), object_attributes, allocation_size, attributes,
+            access_modes.0, object_attributes, allocation_size, attributes,
             share_modes, creation_disposition as u32,
             creation_options
                 .set(CreationOption::DirectoryFile, false)
@@ -411,7 +402,7 @@ impl File {
         extended_attributes: Option<(&crate::io::file::ntfs::ExtendedAttributesInformation, u32)>
     ) -> Result<(Self, IoStatus), crate::error::NtStatus> {
         Object::create_syscall(
-            access_modes.0.value(), object_attributes, allocation_size, attributes,
+            access_modes.0, object_attributes, allocation_size, attributes,
             share_modes, creation_disposition as u32,
             creation_options
                 .set(CreationOption::DirectoryFile, false)
@@ -821,18 +812,17 @@ impl core::ops::Drop for File {
     }
 }
 
-bitfield::bit_field!(
-    /// Official documentation: [File Security and Access Rights](https://docs.microsoft.com/en-us/windows/win32/fileio/file-security-and-access-rights).
-    #[derive(Copy, Clone, Eq, PartialEq)]
-    pub FileAccessModes: u32;
-    flags:
-        pub has          + pub set:          FileAccessMode,
-        pub has_standard + pub set_standard: crate::object::AccessMode
-);
+/// Official documentation: [File Security and Access Rights](https://docs.microsoft.com/en-us/windows/win32/fileio/file-security-and-access-rights).
+#[bitfield::bitfield(32)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub struct FileAccessModes {
+    pub mode: FileAccessMode,
+    pub standard: crate::object::AccessMode
+}
 
 /// Official documentation: [File Security and Access Rights](https://docs.microsoft.com/en-us/windows/win32/fileio/file-security-and-access-rights).
 #[allow(missing_docs)]
-#[derive(Copy, Clone, Debug, Iterator)]
+#[derive(Copy, Clone, Debug, bitfield::Flags)]
 #[repr(u8)]
 pub enum FileAccessMode {
     ReadData,
@@ -847,7 +837,7 @@ pub enum FileAccessMode {
 
 /// Official documentation: [FileInformationClass enum](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ne-wdm-_file_information_class).
 #[allow(unused)]
-#[derive(Copy, Clone, Debug, Iterator)]
+#[derive(Copy, Clone, Debug)]
 #[repr(u32)]
 pub(crate) enum Information {
     Directory = 1,
@@ -937,7 +927,7 @@ pub(crate) enum Information {
 
 /// Official documentation: [NtCreateFile status block results](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntcreatefile).
 #[allow(missing_docs)]
-#[derive(Copy, Clone, Debug, Eq, FromPrimitive, Iterator, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, bitfield::FromPrimitive, PartialEq)]
 #[repr(u32)]
 pub enum IoStatus {
     Superseded,
@@ -1181,17 +1171,14 @@ impl Object {
     }
 }
 
-bitfield::bit_field!(
-    /// Official documentation: [FILE_SHARE_* enum](https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew).
-    #[derive(Copy, Clone, Eq, PartialEq)]
-    pub ShareModes: u32;
-    flags:
-        pub has + pub set: ShareMode
-);
+/// Official documentation: [FILE_SHARE_* enum](https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew).
+#[bitfield::bitfield(32)]
+#[derive(Copy, Clone, Debug, Display, Eq, PartialEq)]
+pub struct ShareModes(pub ShareMode);
 
 /// Official documentation: [FILE_SHARE_* enum](https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew).
 #[allow(missing_docs)]
-#[derive(Copy, Clone, Debug, Iterator)]
+#[derive(Copy, Clone, Debug, bitfield::Flags)]
 #[repr(u8)]
 pub enum ShareMode {
     Read,
@@ -1529,7 +1516,7 @@ mod tests {
         ) -> Result<IoStatus, crate::error::NtStatus> {
             f(
                 DirectoryAccessModes::new()
-                    .set(DirectoryAccessMode::List, true),
+                    .set_mode(DirectoryAccessMode::List, true),
                 attributes,
                 Attributes::new(),
                 ShareModes::all(),
@@ -1560,7 +1547,7 @@ mod tests {
             // root_directory
             let windows_attributes = crate::object::Attributes::from_name(&windows);
             let windows_handle = f(
-                DirectoryAccessModes::new().set(DirectoryAccessMode::List, true),
+                DirectoryAccessModes::new().set_mode(DirectoryAccessMode::List, true),
                 &windows_attributes,
                 Attributes::new(),
                 ShareModes::all(),
@@ -1649,7 +1636,7 @@ mod tests {
             let attributes = crate::object::Attributes::from_name(object_name);
             f(
                 DirectoryAccessModes::new()
-                    .set(DirectoryAccessMode::List, true)
+                    .set_mode(DirectoryAccessMode::List, true)
                     .set_standard(crate::object::AccessMode::Delete, delete_on_close),
                 &attributes,
                 Attributes::new(),
@@ -1778,7 +1765,7 @@ mod tests {
             )
         ] {
             let directory = f.0(
-                DirectoryAccessModes::new().set(DirectoryAccessMode::ReadAttributes, true),
+                DirectoryAccessModes::new().set_mode(DirectoryAccessMode::ReadAttributes, true),
                 &attributes,
                 Attributes::new(),
                 ShareModes::all(),
@@ -2087,7 +2074,7 @@ mod tests {
         ) -> Result<IoStatus, crate::error::NtStatus> {
             f(
                 FileAccessModes::new()
-                    .set(FileAccessMode::ReadAttributes, true),
+                    .set_mode(FileAccessMode::ReadAttributes, true),
                 attributes,
                 None,
                 Attributes::new(),
@@ -2124,7 +2111,7 @@ mod tests {
             let windows = StringW::from(windows.as_ref());
             let windows_attributes = crate::object::Attributes::from_name(&windows);
             let windows = f.1(
-                DirectoryAccessModes::new().set(DirectoryAccessMode::List, true),
+                DirectoryAccessModes::new().set_mode(DirectoryAccessMode::List, true),
                 &windows_attributes,
                 Attributes::new(),
                 ShareModes::all(),
@@ -2203,7 +2190,7 @@ mod tests {
             #[allow(unused)]
             let dir = f.0(
                 DirectoryAccessModes::new()
-                    .set(DirectoryAccessMode::List, true)
+                    .set_mode(DirectoryAccessMode::List, true)
                     .set_standard(crate::object::AccessMode::Delete, true),
                 &dir,
                 Attributes::new(),
@@ -2222,8 +2209,8 @@ mod tests {
 
             let file = f.1(
                 FileAccessModes::new()
-                    .set(FileAccessMode::WriteData, true)
-                    .set(FileAccessMode::ReadAttributes, true)
+                    .set_mode(FileAccessMode::WriteData, true)
+                    .set_mode(FileAccessMode::ReadAttributes, true)
                     .set_standard(crate::object::AccessMode::Delete, true)
                     .set_standard(crate::object::AccessMode::Synchronize, true),
                 &attributes,
@@ -2279,7 +2266,7 @@ mod tests {
             #[allow(unused)]
             let dir = f.0(
                 DirectoryAccessModes::new()
-                    .set(DirectoryAccessMode::List, true)
+                    .set_mode(DirectoryAccessMode::List, true)
                     .set_standard(crate::object::AccessMode::Delete, true),
                 &dir,
                 Attributes::new(),
@@ -2305,8 +2292,8 @@ mod tests {
                 let attributes = crate::object::Attributes::from_name(object_name);
                 f(
                     FileAccessModes::new()
-                        .set(FileAccessMode::ReadAttributes, read_attributes)
-                        .set(FileAccessMode::WriteData, write_data)
+                        .set_mode(FileAccessMode::ReadAttributes, read_attributes)
+                        .set_mode(FileAccessMode::WriteData, write_data)
                         .set_standard(crate::object::AccessMode::Delete, delete_on_close)
                         .set_standard(crate::object::AccessMode::GenericWrite, generic_write),
                     &attributes,
@@ -2552,7 +2539,7 @@ mod tests {
             )
         ] {
             let file = f.0(
-                FileAccessModes::new().set(FileAccessMode::ReadAttributes, true),
+                FileAccessModes::new().set_mode(FileAccessMode::ReadAttributes, true),
                 &attributes,
                 None,
                 Attributes::new(),
@@ -2593,7 +2580,7 @@ mod tests {
         // With `ReadData` permission.
         file = File::create_kernel32(
             notepad.as_ref(),
-            FileAccessModes::new().set(FileAccessMode::ReadData, true),
+            FileAccessModes::new().set_mode(FileAccessMode::ReadData, true),
             ShareModes::all(),
             None,
             CreationDispositionFileKernel32::OpenExisting,
@@ -2675,7 +2662,7 @@ mod tests {
             // With `ReadData` permission.
             file = f.0(
                 FileAccessModes::new()
-                    .set(FileAccessMode::ReadData, true)
+                    .set_mode(FileAccessMode::ReadData, true)
                     .set_standard(crate::object::AccessMode::Synchronize, true),
                 &notepad,
                 None,
@@ -2721,8 +2708,8 @@ mod tests {
         let file = File::create_kernel32(
             path,
             FileAccessModes::new()
-                .set(FileAccessMode::ReadData, true)
-                .set(FileAccessMode::WriteData, true)
+                .set_mode(FileAccessMode::ReadData, true)
+                .set_mode(FileAccessMode::WriteData, true)
                 .set_standard(crate::object::AccessMode::Delete, true),
             ShareModes::new(),
             None,
@@ -2820,7 +2807,7 @@ mod tests {
             #[allow(unused)]
             let dir = f.0(
                 DirectoryAccessModes::new()
-                    .set(DirectoryAccessMode::List, true)
+                    .set_mode(DirectoryAccessMode::List, true)
                     .set_standard(crate::object::AccessMode::Delete, true),
                 &dir,
                 Attributes::new(),
@@ -2837,9 +2824,9 @@ mod tests {
 
             let file = f.1(
                 FileAccessModes::new()
-                    .set(FileAccessMode::ReadAttributes, true)
-                    .set(FileAccessMode::ReadData, true)
-                    .set(FileAccessMode::WriteData, true)
+                    .set_mode(FileAccessMode::ReadAttributes, true)
+                    .set_mode(FileAccessMode::ReadData, true)
+                    .set_mode(FileAccessMode::WriteData, true)
                     .set_standard(crate::object::AccessMode::Delete, true)
                     .set_standard(crate::object::AccessMode::Synchronize, true),
                 &attributes,

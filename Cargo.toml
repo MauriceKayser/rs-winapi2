@@ -8,5 +8,4 @@ readme = "README.md"
 version = "0.1.0"
 
 [dependencies]
-bitfield = { git = "https://github.com/MauriceKayser/rs-bitfield", rev = "789b48a" }
-enum_extensions = { git = "https://github.com/MauriceKayser/rs-enum_extensions", rev = "ddd00db" }
+bitfield = { git = "https://github.com/MauriceKayser/rs-bitfield", rev = "742e8ce2366eff6dfef497224702bf88c296a579" }

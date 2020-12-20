@@ -25,7 +25,7 @@ fn calc_architecture() {
 
     let file = winapi2::File::create_syscall(
         FileAccessModes::new()
-            .set(FileAccessMode::ReadData, true)
+            .set_mode(FileAccessMode::ReadData, true)
             .set_standard(winapi2::object::AccessMode::Synchronize, true),
         &object_attributes,
         None,
@@ -96,7 +96,7 @@ fn calc_header_message() {
     #[allow(unused)]
     let dir = Directory::create_syscall(
         DirectoryAccessModes::new()
-            .set(DirectoryAccessMode::List, true)
+            .set_mode(DirectoryAccessMode::List, true)
             .set_standard(winapi2::object::AccessMode::Delete, true),
         &dir,
         Attributes::new(),
@@ -113,8 +113,8 @@ fn calc_header_message() {
 
     let file = File::create_syscall(
         FileAccessModes::new()
-            .set(FileAccessMode::ReadData, true)
-            .set(FileAccessMode::WriteData, true)
+            .set_mode(FileAccessMode::ReadData, true)
+            .set_mode(FileAccessMode::WriteData, true)
             .set_standard(winapi2::object::AccessMode::Delete, true)
             .set_standard(winapi2::object::AccessMode::Synchronize, true),
         &attributes,

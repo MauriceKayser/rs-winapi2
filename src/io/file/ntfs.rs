@@ -1,22 +1,17 @@
 //! All New Technology File System related Windows types.
 
-use enum_extensions::Iterator;
-
-bitfield::bit_field!(
-    /// Official documentation: [FILE_* enum](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_file_full_ea_information).
-    ///
-    /// Unofficial documentation: [FILE_* enum](https://github.com/processhacker/phnt/blob/master/ntioapi.h).
-    #[derive(Copy, Clone, Eq, PartialEq)]
-    pub ExtendedAttributeFlags: u8;
-    flags:
-        pub has + pub set: ExtendedAttributeFlag
-);
+/// Official documentation: [FILE_* enum](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_file_full_ea_information).
+///
+/// Unofficial documentation: [FILE_* enum](https://github.com/processhacker/phnt/blob/master/ntioapi.h).
+#[bitfield::bitfield(8)]
+#[derive(Copy, Clone, Debug, Display, Eq, PartialEq)]
+pub struct ExtendedAttributeFlags(pub ExtendedAttributeFlag);
 
 /// Official documentation: [FILE_* enum](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_file_full_ea_information).
 ///
 /// Unofficial documentation: [FILE_* enum](https://github.com/processhacker/phnt/blob/master/ntioapi.h).
 #[allow(missing_docs)]
-#[derive(Copy, Clone, Debug, Iterator)]
+#[derive(Copy, Clone, Debug, bitfield::Flags)]
 #[repr(u8)]
 pub enum ExtendedAttributeFlag {
     NeedKnowledge = 7

@@ -56,7 +56,7 @@ fn try_terminate_system() {
 
     let process = Process::open_syscall(
         &client_id,
-        AccessModes::new().set(AccessMode::QueryLimitedInformation, true),
+        AccessModes::new().set_mode(AccessMode::QueryLimitedInformation, true),
         &attributes
     ).expect("could not open SYSTEM process, I might not be admin");
 

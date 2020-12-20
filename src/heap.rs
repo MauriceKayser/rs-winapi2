@@ -1,7 +1,5 @@
 //! All heap related Windows types for the current process.
 
-use enum_extensions::Iterator;
-
 /// Uses the `kernel32` heap manipulation functions.
 #[cfg(not(any(winapi = "native", winapi = "syscall")))]
 pub type Heap = SystemHeapKernel32;
@@ -120,21 +118,18 @@ unsafe impl core::alloc::GlobalAlloc for SystemHeapNtDll {
 #[repr(transparent)]
 pub(crate) struct SystemHeapHandle(core::num::NonZeroUsize);
 
-bitfield::bit_field!(
-    /// Official documentation: [kernel32.HeapAlloc flags](https://docs.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapalloc).
-    ///
-    /// Official documentation: [kernel32.HeapCreate flags](https://docs.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapcreate).
-    #[derive(Copy, Clone, Eq, PartialEq)]
-    pub(crate) SystemHeapFlags: u32;
-    flags:
-        pub(crate) has + pub(crate) set: SystemHeapFlag
-);
+/// Official documentation: [kernel32.HeapAlloc flags](https://docs.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapalloc).
+///
+/// Official documentation: [kernel32.HeapCreate flags](https://docs.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapcreate).
+#[bitfield::bitfield(32)]
+#[derive(Copy, Clone, Debug, Display, Eq, PartialEq)]
+pub(crate) struct SystemHeapFlags(pub(crate) SystemHeapFlag);
 
 /// Official documentation: [kernel32.HeapAlloc flags](https://docs.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapalloc).
 ///
 /// Official documentation: [kernel32.HeapCreate flags](https://docs.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapcreate).
 #[allow(missing_docs)]
-#[derive(Copy, Clone, Debug, Iterator)]
+#[derive(Copy, Clone, Debug, bitfield::Flags)]
 #[repr(u8)]
 pub(crate) enum SystemHeapFlag {
     NoSerializeAccess,

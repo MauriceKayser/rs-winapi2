@@ -4,24 +4,22 @@ pub mod info;
 pub mod thread;
 
 use alloc::vec::Vec;
-use enum_extensions::Iterator;
 
-bitfield::bit_field!(
-    /// Official documentation: [Process Security and Access Rights](https://docs.microsoft.com/en-us/windows/win32/procthread/process-security-and-access-rights).
-    ///
-    /// Unofficial documentation: [Process Hacker - ntpsapi.h](https://github.com/processhacker/processhacker/blob/master/phnt/include/ntpsapi.h).
-    #[derive(Copy, Clone, Eq, PartialEq)]
-    pub AccessModes: u32;
-    flags:
-        pub has          + pub set:          AccessMode,
-        pub has_standard + pub set_standard: crate::object::AccessMode
-);
+/// Official documentation: [Process Security and Access Rights](https://docs.microsoft.com/en-us/windows/win32/procthread/process-security-and-access-rights).
+///
+/// Unofficial documentation: [Process Hacker - ntpsapi.h](https://github.com/processhacker/processhacker/blob/master/phnt/include/ntpsapi.h).
+#[bitfield::bitfield(32)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub struct AccessModes {
+    pub mode: AccessMode,
+    pub standard: crate::object::AccessMode
+}
 
 /// Official documentation: [Process Security and Access Rights](https://docs.microsoft.com/en-us/windows/win32/procthread/process-security-and-access-rights).
 ///
 /// Unofficial documentation: [Process Hacker - ntpsapi.h](https://github.com/processhacker/processhacker/blob/master/phnt/include/ntpsapi.h).
 #[allow(missing_docs)]
-#[derive(Copy, Clone, Debug, Iterator)]
+#[derive(Copy, Clone, Debug, bitfield::Flags)]
 #[repr(u8)]
 pub enum AccessMode {
     Terminate,
@@ -70,7 +68,7 @@ impl ClientId {
 ///
 /// Unofficial documentation: [PROCESS_INFORMATION_CLASS enum](https://github.com/processhacker/processhacker/blob/master/phnt/include/ntpsapi.h).
 #[allow(unused)]
-#[derive(Copy, Clone, Debug, Iterator)]
+#[derive(Copy, Clone, Debug)]
 #[repr(u32)]
 pub(crate) enum Information {
     Basic,
@@ -544,7 +542,7 @@ mod tests {
 
         let me_limited = Process::open_ntdll(
             &ClientId::from_process_id(info_all.id()),
-            AccessModes::new().set(AccessMode::QueryLimitedInformation, true),
+            AccessModes::new().set_mode(AccessMode::QueryLimitedInformation, true),
             &crate::object::Attributes::new(
                 None,
                 None,
@@ -580,7 +578,7 @@ mod tests {
 
         let me_limited = Process::open_syscall(
             &ClientId::from_process_id(info_all.id()),
-            AccessModes::new().set(AccessMode::QueryLimitedInformation, true),
+            AccessModes::new().set_mode(AccessMode::QueryLimitedInformation, true),
             &crate::object::Attributes::new(
                 None,
                 None,

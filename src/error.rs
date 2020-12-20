@@ -1,7 +1,5 @@
 //! All error related Windows types.
 
-use enum_extensions::FromPrimitive;
-
 /// Used for functions which can return errors. If the value `None` is returned, no error occurred.
 #[must_use = "this `Option` may return an error, which should be handled"]
 pub type ErrorResult = Option<Error>;
@@ -50,7 +48,7 @@ impl core::fmt::Debug for NtStatus {
 
 /// Official documentation: [NTSTATUS values](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/596a1078-e883-4972-9bbc-49e60bebca55).
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, FromPrimitive)]
+#[derive(Clone, Copy, Debug, bitfield::FromPrimitive)]
 #[repr(u32)]
 pub enum NtStatusValue {
     UserApc = 0x000000C0,
@@ -1876,7 +1874,7 @@ impl core::fmt::Debug for Status {
 
 /// Official documentation: [System Error Codes](https://docs.microsoft.com/en-us/windows/win32/debug/system-error-codes).
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, FromPrimitive)]
+#[derive(Clone, Copy, Debug, bitfield::FromPrimitive)]
 #[repr(u32)]
 pub enum StatusValue {
     InvalidFunction = 1,

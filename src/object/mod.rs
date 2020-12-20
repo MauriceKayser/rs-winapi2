@@ -1,7 +1,5 @@
 //! All object related Windows types.
 
-use enum_extensions::Iterator;
-
 pub mod security;
 pub mod synchronization;
 
@@ -9,7 +7,7 @@ pub mod synchronization;
 ///
 /// Specializations: [Access Rights and Access Masks](https://docs.microsoft.com/en-us/windows/win32/secauthz/access-rights-and-access-masks).
 #[allow(missing_docs)]
-#[derive(Copy, Clone, Debug, Iterator)]
+#[derive(Copy, Clone, Debug, bitfield::Flags)]
 #[repr(u8)]
 pub enum AccessMode {
     Delete = 16,
@@ -81,17 +79,14 @@ pub enum AttributeDirectory<'a> {
     Object(&'a Directory)
 }
 
-bitfield::bit_field!(
-    /// Official documentation: [OBJECT_ATTRIBUTES struct](https://docs.microsoft.com/en-us/windows/win32/api/ntdef/ns-ntdef-_object_attributes).
-    #[derive(Copy, Clone, Eq, PartialEq)]
-    pub AttributeFlags: u32;
-    flags:
-        pub has + pub set: AttributeFlag
-);
+/// Official documentation: [OBJECT_ATTRIBUTES struct](https://docs.microsoft.com/en-us/windows/win32/api/ntdef/ns-ntdef-_object_attributes).
+#[bitfield::bitfield(32)]
+#[derive(Copy, Clone, Debug, Display, Eq, PartialEq)]
+pub struct AttributeFlags(pub AttributeFlag);
 
 /// Official documentation: [OBJECT_ATTRIBUTES struct](https://docs.microsoft.com/en-us/windows/win32/api/ntdef/ns-ntdef-_object_attributes).
 #[allow(missing_docs)]
-#[derive(Copy, Clone, Debug, Iterator)]
+#[derive(Copy, Clone, Debug, bitfield::Flags)]
 #[repr(u8)]
 pub enum AttributeFlag {
     Inherit = 1,

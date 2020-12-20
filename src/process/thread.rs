@@ -1,26 +1,24 @@
 //! All thread related Windows types.
 
-use enum_extensions::{FromPrimitive, Iterator};
-
 /// Official documentation [SetProcessAffinityMask function](https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-setprocessaffinitymask).
 #[derive(Copy, Clone, Eq, PartialEq)]
 #[repr(C)]
-pub struct CpuAffinityMask(bitfield::BitField64);
+pub struct CpuAffinityMask(u64);
 
 impl CpuAffinityMask {
     /// Creates a new instance with no cpu affinities set.
     #[cfg_attr(not(debug_assertions), inline(always))]
     pub const fn new() -> Self {
-        Self(bitfield::BitField64::new())
+        Self(0)
     }
 
     /// Returns `true` if the affinity for the cpu is set, `false` otherwise. `index` must be < 64.
     #[cfg_attr(not(debug_assertions), inline(always))]
     pub const fn cpu(&self, index: u8) -> bool {
         // TODO: Wait for https://github.com/rust-lang/rust/issues/51999.
-        //assert!(index < 64);
+        // assert!(index < 64);
 
-        self.0.bit(index)
+        ((self.0 >> index) & 1) != 0
     }
 
     /// Returns a new instance with the affinity for the cpu specified via `index` set to `value`.
@@ -30,7 +28,9 @@ impl CpuAffinityMask {
         // TODO: Wait for https://github.com/rust-lang/rust/issues/51999.
         // assert!(index < 64);
 
-        Self(self.0.set_bit(index, value))
+        let cleared = self.0 & !(1 << index);
+
+        Self(cleared | ((value as u64) << index))
     }
 }
 
@@ -48,28 +48,23 @@ impl core::fmt::Debug for CpuAffinityMask {
 
 impl core::fmt::Display for CpuAffinityMask {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-        let mut formatted = alloc::string::String::new();
+        let mut flags = alloc::vec::Vec::new();
 
         for i in 0..64 {
-            if self.0.bit(i) {
-                if formatted.len() > 0 {
-                    formatted.push_str(" | ");
-                }
-                formatted.push_str(&alloc::format!("Cpu{}", i));
+            if self.cpu(i) {
+                flags.push(alloc::format!("{:?}", i));
             }
         }
 
-        if formatted.len() == 0 {
-            formatted.push('-');
-        }
+        let flags = flags.join(" | ");
 
-        f.write_str(formatted.as_ref())
+        f.write_str(if flags.len() > 0 { &flags } else { "-" })
     }
 }
 
 /// Official documentation [ThreadPriorityLevel enum](https://docs.microsoft.com/en-us/dotnet/api/system.diagnostics.threadprioritylevel).
 #[allow(missing_docs)]
-#[derive(Copy, Clone, Debug, FromPrimitive, Iterator)]
+#[derive(Copy, Clone, Debug, bitfield::FromPrimitive)]
 #[repr(i32)]
 pub enum PriorityLevel {
     Idle = -15,
@@ -83,7 +78,7 @@ pub enum PriorityLevel {
 
 /// Official documentation [ThreadState enum](https://docs.microsoft.com/en-us/dotnet/api/system.diagnostics.threadstate).
 #[allow(missing_docs)]
-#[derive(Copy, Clone, Debug, FromPrimitive, Iterator)]
+#[derive(Copy, Clone, Debug, bitfield::FromPrimitive)]
 #[repr(u32)]
 pub enum State {
     Initialized,
@@ -98,7 +93,7 @@ pub enum State {
 
 /// Official documentation [ThreadWaitReason enum](https://docs.microsoft.com/en-us/dotnet/api/system.diagnostics.threadwaitreason).
 #[allow(missing_docs)]
-#[derive(Copy, Clone, Debug, FromPrimitive, Iterator)]
+#[derive(Copy, Clone, Debug, bitfield::FromPrimitive)]
 #[repr(u32)]
 pub enum WaitReason {
     Executive,
