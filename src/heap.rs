@@ -35,11 +35,14 @@ unsafe impl core::alloc::GlobalAlloc for SystemHeapKernel32 {
             core::ptr::write_bytes(memory, 0, layout.size());
         }
 
-        if crate::dll::kernel32::GetProcessHeap().and_then(|heap| crate::dll::kernel32::HeapFree(
-            heap,
-            SystemHeapFlags::new().set(SystemHeapFlag::NoSerializeAccess, self.no_serialize),
-            memory
-        ).into().then_some(())).is_none() {
+        if !crate::dll::kernel32::GetProcessHeap()
+            .map(|heap| crate::dll::kernel32::HeapFree(
+                heap,
+                SystemHeapFlags::new().set(SystemHeapFlag::NoSerializeAccess, self.no_serialize),
+                memory
+            ).into())
+            .unwrap_or_default()
+        {
             alloc::alloc::handle_alloc_error(layout);
         }
     }
@@ -88,11 +91,11 @@ unsafe impl core::alloc::GlobalAlloc for SystemHeapNtDll {
         let mut heap = core::mem::MaybeUninit::uninit();
 
         if crate::dll::ntdll::RtlGetProcessHeaps(1, heap.as_mut_ptr()) < 1 ||
-           crate::dll::ntdll::RtlFreeHeap(
+           !crate::dll::ntdll::RtlFreeHeap(
             heap.assume_init(),
             SystemHeapFlags::new().set(SystemHeapFlag::NoSerializeAccess, self.no_serialize),
             memory
-        ).into().then_some(()).is_none() {
+        ).into() {
             alloc::alloc::handle_alloc_error(layout);
         }
     }
@@ -152,4 +155,30 @@ pub(crate) enum SystemHeapFlag {
     EnableTracing,
     #[allow(unused)]
     CreateEnableExecute
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use core::alloc::{Layout, GlobalAlloc};
+
+    #[test]
+    fn heaps() {
+        let layout = Layout::from_size_align(20, 8).unwrap();
+
+        for heap in [
+            &SystemHeapKernel32 { clear: false, no_serialize: false } as &dyn GlobalAlloc,
+            &SystemHeapNtDll { clear: false, no_serialize: false } as &dyn GlobalAlloc
+        ].iter() {
+            unsafe {
+                let data = heap.alloc(layout);
+                assert_ne!(data as usize, 0);
+                heap.dealloc(data, layout);
+
+                let data = heap.alloc_zeroed(layout);
+                assert_ne!(data as usize, 0);
+                heap.dealloc(data, layout);
+            }
+        }
+    }
 }

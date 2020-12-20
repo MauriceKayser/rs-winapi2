@@ -75,7 +75,7 @@
 //! the application if no exception handlers are set up!
 
 #![deny(missing_docs)]
-#![feature(bool_to_option, llvm_asm)]
+#![feature(llvm_asm)]
 #![no_std]
 
 // External crates.
