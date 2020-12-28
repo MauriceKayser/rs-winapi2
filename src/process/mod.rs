@@ -437,6 +437,49 @@ impl Process {
     pub fn terminate_syscall(&self, exit_code: u32) -> crate::error::NtStatusResult {
         unsafe { crate::dll::syscall::NtTerminateProcess(self.0.clone(), exit_code) }
     }
+
+    /// Official documentation: [kernel32.TerminateProcess](https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-terminateprocess).
+    ///
+    /// Tries to terminate the current process.
+    ///
+    /// WARNING: This causes UB if the current process is not terminated.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub unsafe fn terminate_current(exit_code: u32) -> ! {
+        #[cfg(not(any(winapi = "native", winapi = "syscall")))]
+        { Self::terminate_current_kernel32(exit_code); }
+        #[cfg(winapi = "native")]
+        { Self::terminate_current_ntdll(exit_code); }
+        #[cfg(winapi = "syscall")]
+        { Self::terminate_current_syscall(exit_code); }
+    }
+
+    /// Tries to terminate the current process by calling `kernel32.TerminateProcess`.
+    ///
+    /// WARNING: This causes UB if the current process is not terminated.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub unsafe fn terminate_current_kernel32(exit_code: u32) -> ! {
+        crate::dll::kernel32::TerminateProcess(Self::current().0.clone(), exit_code);
+        core::hint::unreachable_unchecked();
+    }
+
+    /// Tries to terminate the current process by calling `ntdll.NtTerminateProcess`.
+    ///
+    /// WARNING: This causes UB if the current process is not terminated.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub unsafe fn terminate_current_ntdll(exit_code: u32) -> ! {
+        crate::dll::ntdll::NtTerminateProcess(Self::current().0.clone(), exit_code);
+        core::hint::unreachable_unchecked();
+    }
+
+    /// Tries to terminate the current process by directly calling the `ntdll.NtTerminateProcess`
+    /// system call.
+    ///
+    /// WARNING: This causes UB if the current process is not terminated.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub unsafe fn terminate_current_syscall(exit_code: u32) -> ! {
+        crate::dll::syscall::NtTerminateProcess(Self::current().0.clone(), exit_code);
+        core::hint::unreachable_unchecked();
+    }
 }
 
 impl core::ops::Drop for Process {
