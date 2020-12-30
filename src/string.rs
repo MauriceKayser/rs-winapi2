@@ -49,7 +49,7 @@ impl Str {
 
 impl ImplString<&str> for Str {
     fn ends_with(&self, sub: &str) -> bool {
-        if self.len() * core::mem::size_of::<WideChar>() < sub.len() { return false; }
+        if self.len() < sub.len() { return false; }
 
         let mut index = self.len();
         for c in sub.chars().rev() {
@@ -71,7 +71,7 @@ impl ImplString<&str> for Str {
     }
 
     fn starts_with(&self, sub: &str) -> bool {
-        if self.len() * core::mem::size_of::<WideChar>() < sub.len() { return false; }
+        if self.len() < sub.len() { return false; }
 
         let mut index = 0;
         for c in sub.chars() {
@@ -124,9 +124,16 @@ impl ImplString<&String> for Str {
 impl core::cmp::PartialEq<str> for Str {
     #[cfg_attr(not(debug_assertions), inline(always))]
     fn eq(&self, other: &str) -> bool {
-        if self.len() * core::mem::size_of::<WideChar>() != other.len() { return false; }
+        if self.len() != other.len() { return false; }
 
         self.starts_with(other)
+    }
+}
+
+impl core::cmp::PartialEq<&str> for Str {
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    fn eq(&self, other: &&str) -> bool {
+        self.eq(*other)
     }
 }
 
@@ -176,6 +183,18 @@ impl core::fmt::Display for Str {
 pub struct String(Vec<WideChar>);
 
 impl String {
+    /// Creates a new empty `String`.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn new() -> Self {
+        Self(Vec::new())
+    }
+
+    /// Creates a new empty `String` with a particular capacity.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self(Vec::with_capacity(capacity))
+    }
+
     /// Returns a mutable raw pointer to the slice's buffer.
     #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn as_mut_ptr(&mut self) -> *mut WideChar {
@@ -200,10 +219,123 @@ impl String {
         self.0.is_empty()
     }
 
+    /// Returns the number of wide characters the `String` can hold without reallocating.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn capacity(&self) -> usize {
+        self.0.capacity()
+    }
+
     /// Returns the amount of referenced wide characters.
     #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn len(&self) -> usize {
         self.0.len()
+    }
+
+    /// Ensures that this `String`'s capacity is at least `additional` wide characters larger than
+    /// its length.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn reserve(&mut self, additional: usize) {
+        self.0.reserve(additional)
+    }
+
+    /// Ensures that this `String`'s capacity is `additional` wide characters larger than its
+    /// length.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn reserve_exact(&mut self, additional: usize) {
+        self.0.reserve_exact(additional)
+    }
+
+    /// Shrinks the capacity of this `String` to match its length.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn shrink_to_fit(&mut self) {
+        self.0.shrink_to_fit()
+    }
+
+    /// Shortens this `String` to the specified length.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn truncate(&mut self, new_len: usize) {
+        self.0.truncate(new_len);
+    }
+
+    /// Inserts a wide character into this `String` at a wide character position.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn insert(&mut self, idx: usize, ch: WideChar) {
+        self.0.insert(idx, ch)
+    }
+
+    /// Inserts a `char` into this `String` at a wide character position.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn insert_char(&mut self, idx: usize, ch: char) {
+        let mut utf16 = [0; 2];
+        let utf16 = ch.encode_utf16(&mut utf16);
+        self.insert_str(idx, utf16.as_ref().into());
+    }
+
+    /// Inserts a string slice into this `String` at a wide character position.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn insert_str(&mut self, idx: usize, string: &Str) {
+        let len = self.len();
+        let amt = string.len();
+        self.0.reserve(amt);
+
+        unsafe {
+            core::ptr::copy(
+                self.0.as_ptr().add(idx),
+                self.0.as_mut_ptr().add(idx + amt),
+                len - idx
+            );
+            core::ptr::copy(
+                string.as_ptr(),
+                self.0.as_mut_ptr().add(idx),
+                amt
+            );
+            self.0.set_len(len + amt);
+        }
+    }
+
+    /// Inserts a string slice into this `String` at a wide character position.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn insert_utf8(&mut self, idx: usize, string: &str) {
+        let utf16: Vec<WideChar> = string.encode_utf16().collect();
+        self.insert_str(idx, utf16.as_slice().into())
+    }
+
+    /// Appends the given wide character to the end of this `String`.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn push(&mut self, ch: WideChar) {
+        self.0.push(ch);
+    }
+
+    /// Appends the given `char` to the end of this `String`.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn push_char(&mut self, ch: char) {
+        let mut utf16 = [0; 2];
+        let utf16 = ch.encode_utf16(&mut utf16);
+        self.push_str(utf16.as_ref().into());
+    }
+
+    /// Appends a given string slice onto the end of this `String`.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn push_str(&mut self, string: &Str) {
+        self.0.extend_from_slice(string.into())
+    }
+
+    /// Appends a given string slice onto the end of this `String`.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn push_utf8(&mut self, string: &str) {
+        self.0.extend(string.encode_utf16())
+    }
+
+    /// Removes the last character from the string buffer and returns it.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn pop(&mut self) -> Option<WideChar> {
+        self.0.pop()
+    }
+
+    /// Removes a wide character from this `String` at a wide character position and returns it.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn remove(&mut self, idx: usize) -> WideChar {
+        self.0.remove(idx)
     }
 }
 
@@ -257,6 +389,13 @@ impl core::cmp::PartialEq<str> for String {
     }
 }
 
+impl core::cmp::PartialEq<&str> for String {
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    fn eq(&self, other: &&str) -> bool {
+        self.as_ref().eq(other)
+    }
+}
+
 impl core::convert::From<&str> for String {
     #[cfg_attr(not(debug_assertions), inline(always))]
     fn from(value: &str) -> Self {
@@ -282,6 +421,13 @@ impl core::convert::AsMut<Str> for String {
     #[cfg_attr(not(debug_assertions), inline(always))]
     fn as_mut(&mut self) -> &mut Str {
         self
+    }
+}
+
+impl core::fmt::Debug for String {
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        f.write_str(&self.as_ref().into_lossy())
     }
 }
 
@@ -373,5 +519,20 @@ mod tests {
 
         assert!(s.starts_with("Test"));
         assert!(!s.starts_with("Best"));
+
+        assert!(s.as_ref().ends_with(String::from("123\0").as_ref()));
+        assert!(!s.as_ref().ends_with(String::from("123").as_ref()));
+
+        assert!(s.as_ref().starts_with(String::from("Test").as_ref()));
+        assert!(!s.as_ref().starts_with(String::from("Best").as_ref()));
+    }
+
+    #[test]
+    fn insert_utf8() {
+        let mut s = String::from("ad");
+        assert_eq!(s, "ad");
+
+        s.insert_utf8(1, "bc");
+        assert_eq!(s, "abcd");
     }
 }

@@ -105,6 +105,7 @@ pub use console::Console;
 pub use heap::Heap;
 pub use io::file::{Directory, File};
 pub use process::Process;
+pub use string::{Str, String};
 pub use dll::syscall::{
     Ids as SyscallIds,
     IDS as SYSCALL_IDS
