@@ -136,11 +136,20 @@ impl Handle {
         if self.is_pseudo() { return; }
 
         #[cfg(not(any(winapi = "native", winapi = "syscall")))]
-        unsafe { crate::dll::kernel32::CloseHandle(self); }
+        {
+            let closed = unsafe { crate::dll::kernel32::CloseHandle(self) };
+            debug_assert!(closed.into());
+        }
         #[cfg(winapi = "native")]
-        unsafe { crate::dll::ntdll::NtClose(self); }
+        {
+            let result = unsafe { crate::dll::ntdll::NtClose(self) };
+            debug_assert!(result.is_none());
+        }
         #[cfg(winapi = "syscall")]
-        unsafe { crate::dll::syscall::NtClose(self); }
+        {
+            let result = unsafe { crate::dll::syscall::NtClose(self) };
+            debug_assert!(result.is_none());
+        }
     }
 }
 
