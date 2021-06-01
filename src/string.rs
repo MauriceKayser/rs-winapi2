@@ -16,6 +16,17 @@ pub trait ImplString<T> {
 pub struct Str([WideChar]);
 
 impl Str {
+    /// Returns a `WideChar` slice of this `Str`'s contents.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn as_chars(&self) -> &[WideChar] {
+        &self.0
+    }
+    /// Returns a mutable `WideChar` slice of this `Str`'s contents.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn as_chars_mut(&mut self) -> &mut [WideChar] {
+        &mut self.0
+    }
+
     /// Returns a mutable raw pointer to the slice's buffer.
     #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn as_mut_ptr(&mut self) -> *mut WideChar {
@@ -44,6 +55,33 @@ impl Str {
     #[cfg_attr(not(debug_assertions), inline(always))]
     pub const fn len(&self) -> usize {
         self.0.len()
+    }
+
+    /// Returns a zero-terminated string reference from a zero-terminated string pointer.
+    pub unsafe fn from_terminated<'a>(
+        terminated_string: *const WideChar,
+        exclude_zero_terminator: bool
+    ) -> &'a Self {
+        Self::from_terminated_mut(terminated_string as _, exclude_zero_terminator)
+    }
+
+    /// Returns a zero-terminated, mutable string reference from a zero-terminated string pointer.
+    pub unsafe fn from_terminated_mut<'a>(
+        terminated_string: *mut WideChar,
+        exclude_zero_terminator: bool
+    ) -> &'a mut Self {
+        let mut count = 0;
+
+        loop {
+            if terminated_string.add(count).read() == 0 {
+                return core::convert::From::<&mut [WideChar]>::from(core::slice::from_raw_parts_mut(
+                    terminated_string,
+                    count + (!exclude_zero_terminator) as usize
+                ));
+            }
+
+            count += 1;
+        }
     }
 }
 
@@ -168,7 +206,7 @@ impl<'a> core::convert::Into<&'a mut [WideChar]> for &'a mut Str {
 impl core::fmt::Debug for Str {
     #[cfg_attr(not(debug_assertions), inline(always))]
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-        f.write_str(&self.into_lossy())
+        f.write_fmt(format_args!("{:?}", self.into_lossy()))
     }
 }
 
@@ -176,6 +214,38 @@ impl core::fmt::Display for Str {
     #[cfg_attr(not(debug_assertions), inline(always))]
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         f.write_str(&self.into_lossy())
+    }
+}
+
+impl core::ops::Index<usize> for Str {
+    type Output = WideChar;
+
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.0[index]
+    }
+}
+
+impl core::ops::IndexMut<usize> for Str {
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.0[index]
+    }
+}
+
+impl core::ops::Index<core::ops::RangeInclusive<usize>> for Str {
+    type Output = Str;
+
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    fn index(&self, index: core::ops::RangeInclusive<usize>) -> &Str {
+        core::convert::From::from(&self.0[index])
+    }
+}
+
+impl core::ops::IndexMut<core::ops::RangeInclusive<usize>> for Str {
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    fn index_mut(&mut self, index: core::ops::RangeInclusive<usize>) -> &mut Self::Output {
+        core::convert::From::from(&mut self.0[index])
     }
 }
 
@@ -193,6 +263,18 @@ impl String {
     #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn with_capacity(capacity: usize) -> Self {
         Self(Vec::with_capacity(capacity))
+    }
+
+    /// Returns a `WideChar` slice of this `String`'s contents.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn as_chars(&self) -> &[WideChar] {
+        &self.0
+    }
+
+    /// Returns a mutable `WideChar` slice of this `String`'s contents.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn as_chars_mut(&mut self) -> &mut [WideChar] {
+        &mut self.0
     }
 
     /// Returns a mutable raw pointer to the slice's buffer.
@@ -229,6 +311,12 @@ impl String {
     #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn len(&self) -> usize {
         self.0.len()
+    }
+
+    /// Truncates this `String`, removing all contents.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn clear(&mut self) {
+        self.0.clear();
     }
 
     /// Ensures that this `String`'s capacity is at least `additional` wide characters larger than
@@ -427,7 +515,7 @@ impl core::convert::AsMut<Str> for String {
 impl core::fmt::Debug for String {
     #[cfg_attr(not(debug_assertions), inline(always))]
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-        f.write_str(&self.as_ref().into_lossy())
+        f.write_fmt(format_args!("{:?}", self.into_lossy()))
     }
 }
 
@@ -451,6 +539,38 @@ impl core::ops::DerefMut for String {
     #[cfg_attr(not(debug_assertions), inline(always))]
     fn deref_mut(&mut self) -> &mut Str {
         &mut self[..]
+    }
+}
+
+impl core::ops::Index<usize> for String {
+    type Output = WideChar;
+
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.0[index]
+    }
+}
+
+impl core::ops::IndexMut<usize> for String {
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.0[index]
+    }
+}
+
+impl core::ops::Index<core::ops::RangeInclusive<usize>> for String {
+    type Output = Str;
+
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    fn index(&self, index: core::ops::RangeInclusive<usize>) -> &Str {
+        core::convert::From::from(&self.0[index])
+    }
+}
+
+impl core::ops::IndexMut<core::ops::RangeInclusive<usize>> for String {
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    fn index_mut(&mut self, index: core::ops::RangeInclusive<usize>) -> &mut Self::Output {
+        core::convert::From::from(&mut self.0[index])
     }
 }
 
@@ -479,6 +599,19 @@ pub struct StringW<'a> {
     _phantom: core::marker::PhantomData<&'a WideChar>
 }
 
+impl<'a> StringW<'a> {
+    /// Returns the string buffer with all its capacity.
+    ///
+    /// If only the actual string data is wanted, use `StringW.into()` instead.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn buffer(&self) -> &Str {
+        core::convert::From::<&[WideChar]>::from(unsafe { core::slice::from_raw_parts(
+            self.buffer,
+            self.capacity as usize / core::mem::size_of::<WideChar>()
+        ) })
+    }
+}
+
 impl<'a> core::convert::Into<&'a Str> for &'a StringW<'a> {
     #[cfg_attr(not(debug_assertions), inline(always))]
     fn into(self) -> &'a Str {
@@ -489,11 +622,15 @@ impl<'a> core::convert::Into<&'a Str> for &'a StringW<'a> {
     }
 }
 
+/// `length` will not contain the trailing zero-terminator, if `value` has one.
 impl<'a> core::convert::From<&'a Str> for StringW<'a> {
     #[cfg_attr(not(debug_assertions), inline(always))]
     fn from(value: &'a Str) -> Self {
         Self {
-            length: (value.0.len() * core::mem::size_of::<WideChar>()) as u16,
+            length: (
+                (value.0.len() * core::mem::size_of::<WideChar>()) -
+                (value.0.last().cloned() == Some(0)) as usize * core::mem::size_of::<WideChar>()
+            ) as u16,
             capacity: (value.0.len() * core::mem::size_of::<WideChar>()) as u16,
             buffer: value.as_ptr(),
             _phantom: core::marker::PhantomData
@@ -509,6 +646,24 @@ pub type WideChar = u16;
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn from_terminated() {
+        unsafe {
+            assert_eq!(Str::from_terminated(
+                [0].as_ptr(), false
+            ), "\0");
+            assert_eq!(Str::from_terminated(
+                [0].as_ptr(), true
+            ), "");
+            assert_eq!(Str::from_terminated(
+                [b'a' as WideChar, 0].as_ptr(), false
+            ), "a\0");
+            assert_eq!(Str::from_terminated(
+                [b'a' as WideChar, 0].as_ptr(), true
+            ), "a");
+        }
+    }
 
     #[test]
     fn impl_string() {
@@ -534,5 +689,32 @@ mod tests {
 
         s.insert_utf8(1, "bc");
         assert_eq!(s, "abcd");
+    }
+
+    #[test]
+    fn print() {
+        let string = String::from("A");
+        let str = string.as_ref();
+
+        assert_eq!("A", alloc::format!("{}", string));
+        assert_eq!("A", alloc::format!("{}", str));
+        assert_eq!("\"A\"", alloc::format!("{:?}", string));
+        assert_eq!("\"A\"", alloc::format!("{:?}", str));
+    }
+
+    #[test]
+    fn string_w() {
+        const TEST_DATA: &[(&[WideChar], u16, u16, &str, &str)] = &[
+            (&['A' as WideChar], 1, 1, "A", "A"),
+            (&['A' as WideChar, 0], 2, 1, "A", "A\0"),
+        ];
+
+        for (input, capacity, length, data, buffer) in TEST_DATA {
+            let str = StringW::from(Into::<&Str>::into(*input));
+            assert_eq!(str.capacity, capacity * core::mem::size_of::<WideChar>() as u16);
+            assert_eq!(str.length, length * core::mem::size_of::<WideChar>() as u16);
+            assert_eq!(Into::<&Str>::into(&str), data);
+            assert_eq!(str.buffer(), buffer);
+        }
     }
 }

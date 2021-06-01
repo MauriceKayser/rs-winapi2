@@ -30,6 +30,9 @@ extern "system" {
         template: Option<crate::object::Handle>
     ) -> crate::object::Handle;
 
+    /// Official documentation: [kernel32.GetCommandLineW](https://docs.microsoft.com/en-us/windows/win32/api/processenv/nf-processenv-getcommandlinew).
+    pub(crate) fn GetCommandLineW() -> *const crate::string::WideChar;
+
     /// Official documentation: [kernel32.GetConsoleMode](https://docs.microsoft.com/en-us/windows/console/getconsolemode).
     pub(crate) fn GetConsoleMode(
         handle: crate::object::Handle,
@@ -68,6 +71,11 @@ extern "system" {
         flags: crate::heap::SystemHeapFlags,
         buffer: *mut u8
     ) -> crate::types::Boolean;
+
+    /// Official documentation: [kernel32.LocalFree](https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-localfree).
+    pub(crate) fn LocalFree(
+        buffer: *mut u8
+    ) -> *mut u8;
 
     /// Official documentation: [kernel32.OpenProcess](https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-openprocess).
     pub(crate) fn OpenProcess(

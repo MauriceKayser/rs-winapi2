@@ -1,5 +1,6 @@
 //! All process related Windows types.
 
+pub mod environment;
 pub mod info;
 pub mod thread;
 
