@@ -228,7 +228,7 @@ pub struct InformationProcess<'a> {
     pub create_time: crate::io::file::Time,
     pub user_time: i64,
     pub kernel_time: i64,
-    image_name_: crate::string::StringW<'a>,
+    pub image_name: crate::string::StringW<'a>,
     base_priority_: i32,
     pub id: Option<crate::process::Id>,
     pub inherited_from_id: Option<crate::process::Id>,
@@ -261,12 +261,6 @@ impl<'a> InformationProcess<'a> {
     pub fn base_priority(&self) -> Result<crate::process::thread::PriorityLevel, i32> {
         core::convert::TryFrom::try_from(self.base_priority_)
     }
-
-    #[allow(missing_docs)]
-    #[cfg_attr(not(debug_assertions), inline(always))]
-    pub fn image_name(&'a self) -> &'a crate::string::Str {
-        (&self.image_name_).into()
-    }
 }
 
 impl<'a> core::fmt::Debug for InformationProcess<'a> {
@@ -279,7 +273,7 @@ impl<'a> core::fmt::Debug for InformationProcess<'a> {
             .field(stringify!(create_time), &self.create_time)
             .field(stringify!(user_time), &self.user_time)
             .field(stringify!(kernel_time), &self.kernel_time)
-            .field(stringify!(image_name), &self.image_name())
+            .field(stringify!(image_name), &self.image_name.as_ref())
             .field(stringify!(base_priority), &self.base_priority())
             .field(stringify!(id), &self.id)
             .field(stringify!(inherited_from_id), &self.inherited_from_id)

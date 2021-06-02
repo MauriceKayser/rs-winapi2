@@ -40,7 +40,7 @@ unsafe impl core::alloc::GlobalAlloc for SystemHeapKernel32 {
                 heap,
                 SystemHeapFlags::new().set(SystemHeapFlag::NoSerializeAccess, self.no_serialize),
                 memory
-            ).into())
+            ).as_bool())
             .unwrap_or_default()
         {
             alloc::alloc::handle_alloc_error(layout);
@@ -95,7 +95,7 @@ unsafe impl core::alloc::GlobalAlloc for SystemHeapNtDll {
             heap.assume_init(),
             SystemHeapFlags::new().set(SystemHeapFlag::NoSerializeAccess, self.no_serialize),
             memory
-        ).into() {
+        ).as_bool() {
             alloc::alloc::handle_alloc_error(layout);
         }
     }

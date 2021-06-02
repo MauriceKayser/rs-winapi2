@@ -147,5 +147,5 @@ fn calc_information() {
     let object_attributes = winapi2::object::Attributes::from_name(&file_path_calc);
 
     let information = Object::information_syscall(&object_attributes).unwrap();
-    winapi2::println!("Basic information: {:?}", &information);
+    winapi2::println!("Basic information: {:#?}", &information);
 }

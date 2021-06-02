@@ -47,6 +47,121 @@ pub struct ClientId {
     pub thread: Option<thread::Id>
 }
 
+/// Unofficial documentation: [Cross-Process flags](https://www.geoffchappell.com/studies/windows/win32/ntdll/structs/peb/crossprocessflags.htm).
+///
+/// Unofficial documentation: [CrossProcessFlags bit field](http://terminus.rewolf.pl/terminus/structures/ntdll/_PEB_combined.html).
+#[bitfield::bitfield(32)]
+#[derive(Copy, Clone, Debug, Display, Eq, PartialEq)]
+pub struct CrossProcessFlags(pub CrossProcessFlag);
+
+/// Unofficial documentation: [Cross-Process flags](https://www.geoffchappell.com/studies/windows/win32/ntdll/structs/peb/crossprocessflags.htm).
+///
+/// Unofficial documentation: [CrossProcessFlags bit field](http://terminus.rewolf.pl/terminus/structures/ntdll/_PEB_combined.html).
+#[allow(missing_docs)]
+#[derive(Copy, Clone, Debug, bitfield::Flags)]
+#[repr(u8)]
+pub enum CrossProcessFlag {
+    InJob,
+    Initializing,
+    UsingVEH,
+    UsingVCH,
+    UsingFTH,
+    PreviouslyThrottled,
+    CurrentlyThrottled,
+    ImagesHotPatched
+}
+
+/// Unofficial documentation: [RTL_DRIVE_LETTER_CURDIR struct](http://terminus.rewolf.pl/terminus/structures/ntdll/_RTL_DRIVE_LETTER_CURDIR_combined.html).
+#[repr(C)]
+pub(crate) struct DriveLetter<'a> {
+    // TODO: Replace `u16` with bit field.
+    flags: u16,
+    length: u16,
+    timestamp: u32,
+    dos_path: crate::string::StringA<'a>
+}
+
+/// Official documentation: [PEB struct](https://docs.microsoft.com/en-us/windows/win32/api/winternl/ns-winternl-peb).
+///
+/// Unofficial documentation: [PEB struct](https://www.geoffchappell.com/studies/windows/win32/ntdll/structs/peb/index.htm).
+///
+/// Unofficial documentation: [PEB struct](http://terminus.rewolf.pl/terminus/structures/ntdll/_PEB_combined.html).
+#[allow(missing_docs)]
+#[repr(C)]
+pub struct EnvironmentBlock<'a> {
+    /// If set to `true` by `ntoskrnl.PspCreateProcess` it causes `ntdll.LdrpInitialize` to call
+    /// `ntdll.LdrpForkProcess`, which will reset it to `false` again afterwards.
+    inherited_address_space: u8,
+
+    /// Causes `ntdll.LdrpRunInitializeRoutines` and `kernel32.CreateProcessInternalW` to read
+    /// and handle debugging related information.
+    read_image_file_exec_options: u8,
+    being_debugged_: u8,
+    pub flags: EnvironmentBlockFlags,
+
+    /// Always initialized with `-1` and never read.
+    mutant: *const u8,
+    pub image_base_address: *const u8,
+    pub loader_data: Option<&'a mut LoaderData<'a>>,
+    pub parameters: Option<&'a mut Parameters<'a>>,
+
+    /// Posix and other subsystems related data.
+    sub_system_data: *mut u8,
+    heap: Option<crate::heap::SystemHeapHandle>,
+    pub fast_peb_lock: Option<&'a mut crate::object::synchronization::CriticalSection>,
+    atl_thunk_s_list: *const u8,
+    image_file_execution_options_key: *const u8,
+    pub cross_process_flags: CrossProcessFlags
+    // TODO: Add more fields.
+}
+
+impl<'a> EnvironmentBlock<'a> {
+    #[allow(missing_docs)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub const fn being_debugged(&self) -> bool {
+        self.being_debugged_ != 0
+    }
+
+    /// Read from the current TEB, through the segment selector base field.
+    #[cfg(target_arch = "x86_64")]
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub unsafe fn current_from_segment_base_teb() -> Option<&'static mut Self> {
+        thread::EnvironmentBlock::current_from_segment_base().and_then(
+            |teb| teb.process_environment_block.as_deref_mut()
+        )
+    }
+
+    /// Read from the current TEB.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub unsafe fn current_from_block_teb() -> Option<&'static mut Self> {
+        thread::EnvironmentBlock::current_process_environment_block()
+    }
+}
+
+/// Unofficial documentation: [PEB bit field](https://www.geoffchappell.com/studies/windows/win32/ntdll/structs/peb/bitfield.htm).
+///
+/// Unofficial documentation: [PEB bit field](http://terminus.rewolf.pl/terminus/structures/ntdll/_PEB_combined.html).
+#[bitfield::bitfield(8)]
+#[derive(Copy, Clone, Debug, Display, Eq, PartialEq)]
+pub struct EnvironmentBlockFlags(pub EnvironmentBlockFlag);
+
+/// Unofficial documentation: [PEB bit field](https://www.geoffchappell.com/studies/windows/win32/ntdll/structs/peb/bitfield.htm).
+///
+/// Unofficial documentation: [PEB bit field](http://terminus.rewolf.pl/terminus/structures/ntdll/_PEB_combined.html).
+#[allow(missing_docs)]
+#[derive(Copy, Clone, Debug, bitfield::Flags)]
+#[repr(u8)]
+pub enum EnvironmentBlockFlag {
+    ImageUsedLargePages,
+    IsProtectedProcess,
+    IsImageDynamicallyRelocated,
+    SkipPatchingUser32Forwarders,
+    IsPackagedProcess,
+    IsAppContainer,
+    IsProtectedProcessLight,
+    IsLongPathAware
+}
+
 /// The identifier (kernel handle) of a process object.
 #[derive(Copy, Clone, Eq, PartialEq)]
 #[repr(transparent)]
@@ -172,6 +287,209 @@ pub(crate) enum Information {
     LeapSecond,
     FiberShadowStackAllocation,
     FreeFiberShadowStackAllocation
+}
+
+/// Official documentation: [struct PEB_LDR_DATA](https://docs.microsoft.com/en-us/windows/win32/api/winternl/ns-winternl-peb_ldr_data).
+///
+/// Unofficial documentation: [struct PEB_LDR_DATA](https://www.geoffchappell.com/studies/windows/win32/ntdll/structs/peb_ldr_data.htm).
+///
+/// Unofficial documentation: [struct PEB_LDR_DATA](http://terminus.rewolf.pl/terminus/structures/ntdll/_PEB_LDR_DATA_combined.html).
+#[allow(missing_docs)]
+#[repr(C)]
+pub struct LoaderData<'a> {
+    length: u32,
+    initialized_: u8,
+
+    /// Always initialized with `None` and never read.
+    ss_handle: Option<crate::object::Handle>,
+    pub load_order_next: Option<&'a mut LoaderDataEntry<'a>>,
+    pub load_order_previous: Option<&'a mut LoaderDataEntry<'a>>,
+    pub memory_order_next: Option<&'a mut LoaderDataEntry<'a>>,
+    pub memory_order_previous: Option<&'a mut LoaderDataEntry<'a>>,
+    pub initialization_order_next: Option<&'a mut LoaderDataEntry<'a>>,
+    pub initialization_order_previous: Option<&'a mut LoaderDataEntry<'a>>,
+    pub entry_in_progress: Option<&'a mut LoaderDataEntry<'a>>,
+    shutdown_in_progress: u8,
+    pub shutdown_thread_id: Option<thread::Id>
+}
+
+/// Official documentation: [struct LDR_DATA_TABLE_ENTRY](https://docs.microsoft.com/en-us/windows/win32/api/winternl/ns-winternl-peb_ldr_data).
+///
+/// Unofficial documentation: [struct LDR_DATA_TABLE_ENTRY](https://www.geoffchappell.com/studies/windows/win32/ntdll/structs/ldr_data_table_entry.htm).
+///
+/// Unofficial documentation: [struct LDR_DATA_TABLE_ENTRY](http://terminus.rewolf.pl/terminus/structures/ntdll/_LDR_DATA_TABLE_ENTRY_combined.html).
+#[allow(missing_docs)]
+#[repr(C)]
+pub struct LoaderDataEntry<'a> {
+    pub load_order_next: Option<&'a mut LoaderDataEntry<'a>>,
+    pub load_order_previous: Option<&'a mut LoaderDataEntry<'a>>,
+    pub memory_order_next: Option<&'a mut LoaderDataEntry<'a>>,
+    pub memory_order_previous: Option<&'a mut LoaderDataEntry<'a>>,
+    pub initialization_order_next: Option<&'a mut LoaderDataEntry<'a>>,
+    pub initialization_order_previous: Option<&'a mut LoaderDataEntry<'a>>,
+    pub image_base_address: *const u8,
+    pub image_entry_point: *const u8,
+    pub image_size: u32,
+    pub image_path: crate::string::StringW<'a>,
+    pub image_name: crate::string::StringW<'a>,
+    pub flags: LoaderDataEntryFlags,
+    pub load_count: u16,
+    pub tls_index: u16,
+    hash_link_next: *const u8,
+    hash_link_previous: *const u8,
+    time_date_stamp: u32,
+    image_entry_point_activation_context: *const u8,
+    lock: *const u8
+    // TODO: Add more fields.
+}
+
+/// Unofficial documentation: [LDR_DATA_TABLE_ENTRY bit field](http://terminus.rewolf.pl/terminus/structures/ntdll/_LDR_DATA_TABLE_ENTRY_combined.html).
+#[bitfield::bitfield(32)]
+#[derive(Copy, Clone, Debug, Display, Eq, PartialEq)]
+pub struct LoaderDataEntryFlags(pub LoaderDataEntryFlag);
+
+/// Unofficial documentation: [LDR_DATA_TABLE_ENTRY bit field](http://terminus.rewolf.pl/terminus/structures/ntdll/_LDR_DATA_TABLE_ENTRY_combined.html).
+#[allow(missing_docs)]
+#[derive(Copy, Clone, Debug, bitfield::Flags)]
+#[repr(u8)]
+pub enum LoaderDataEntryFlag {
+    PackagedBinary,
+    MarkedForRemoval,
+    ImageDll,
+    LoadNotificationsSent,
+    TelemetryEntryProcessed,
+    ProcessStaticImport,
+    InLegacyLists,
+    InIndexes,
+    ShimDll,
+    InExceptionTable,
+    LoadInProgress = 12,
+    LoadConfigProcessed,
+    EntryProcessed,
+    ProtectDelayLoaded,
+    DoNotCallForThreads = 18,
+    ProcessAttachCalled,
+    ProcessAttachFailed,
+    CorDeferredValidate,
+    CorImage,
+    DoNotRelocate,
+    CorILOnly,
+    Redirected = 28,
+    CompatDatabaseProcessed = 31
+}
+
+/// Official documentation: [RTL_USER_PROCESS_PARAMETERS struct](https://docs.microsoft.com/en-us/windows/win32/api/winternl/ns-winternl-rtl_user_process_parameters).
+///
+/// Unofficial documentation: [RTL_USER_PROCESS_PARAMETERS struct](http://terminus.rewolf.pl/terminus/structures/ntdll/_RTL_USER_PROCESS_PARAMETERS_combined.html).
+#[allow(missing_docs)]
+#[repr(C)]
+pub struct Parameters<'a> {
+    maximum_length: u32,
+    length: u32,
+    pub flags: ParametersFlags,
+    debug_flags_: crate::types::Boolean,
+    console: Option<crate::object::Handle>,
+    pub console_flags: ParametersConsoleFlags,
+    console_standard_input: Option<crate::object::Handle>,
+    console_standard_output: Option<crate::object::Handle>,
+    console_standard_error: Option<crate::object::Handle>,
+    pub current_directory_path: crate::string::StringW<'a>,
+    current_directory_handle: Option<crate::object::Handle>,
+    pub image_path: crate::string::StringW<'a>,
+    pub image_name: crate::string::StringW<'a>,
+    pub command_line: crate::string::StringW<'a>,
+    environment: *const u8,
+    pub starting_x: u32,
+    pub starting_y: u32,
+    pub count_x: u32,
+    pub count_y: u32,
+    pub count_chars_x: u32,
+    pub count_chars_y: u32,
+    pub fill_attribute: crate::gui::FillAttributes,
+    pub usage_flags: ParametersUsageFlags,
+    pub window_visibility: crate::gui::WindowVisibility,
+    pub window_title: crate::string::StringW<'a>,
+    pub desktop_info: crate::string::StringW<'a>,
+    pub shell_info: crate::string::StringW<'a>,
+    pub runtime_data: crate::string::StringW<'a>,
+    current_directories: [DriveLetter<'a>; 32],
+    environment_size: usize,
+    environment_version: usize,
+    package_dependency_data: *const u8,
+    pub process_group_id: u32,
+    pub loader_threads: u32
+}
+
+impl<'a> Parameters<'a> {
+    #[allow(missing_docs)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub const fn debug_flags(&self) -> bool {
+        self.debug_flags_.as_bool()
+    }
+}
+
+/// Console related parameters for a process.
+#[bitfield::bitfield(32)]
+#[derive(Copy, Clone, Debug, Display, Eq, PartialEq)]
+pub struct ParametersConsoleFlags(pub ParametersConsoleFlag);
+
+/// Console related parameters for a process.
+#[allow(missing_docs)]
+#[derive(Copy, Clone, Debug, bitfield::Flags)]
+#[repr(u8)]
+pub enum ParametersConsoleFlag {
+    IgnoreCtrlC
+}
+
+/// Unofficial documentation: [RTL_USER_PROC_* flags](https://github.com/processhacker/processhacker/blob/master/phnt/include/ntrtl.h).
+#[bitfield::bitfield(32)]
+#[derive(Copy, Clone, Debug, Display, Eq, PartialEq)]
+pub struct ParametersFlags(pub ParametersFlag);
+
+/// Unofficial documentation: [RTL_USER_PROC_* flags](https://github.com/processhacker/processhacker/blob/master/phnt/include/ntrtl.h).
+#[allow(missing_docs)]
+#[derive(Copy, Clone, Debug, bitfield::Flags)]
+#[repr(u8)]
+pub enum ParametersFlag {
+    Normalized,
+    ProfileUser,
+    ProfileKernel,
+    ProfileServer,
+    Reserve1Mb = 5,
+    Reserve16Mb,
+    CaseSensitive,
+    DisableHeapCommit,
+    DllRedirectionLocal = 12,
+    AppManifestPresent,
+    ImageKeyMissing,
+    OptInProcess = 17
+}
+
+/// Official documentation: [STARTF_* flags](https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/ns-processthreadsapi-startupinfow).
+#[bitfield::bitfield(32)]
+#[derive(Copy, Clone, Debug, Display, Eq, PartialEq)]
+pub struct ParametersUsageFlags(pub ParametersUsageFlag);
+
+/// Official documentation: [STARTF_* flags](https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/ns-processthreadsapi-startupinfow).
+#[allow(missing_docs)]
+#[derive(Copy, Clone, Debug, bitfield::Flags)]
+#[repr(u8)]
+pub enum ParametersUsageFlag {
+    UseWindowVisibility,
+    UseSize,
+    UsePosition,
+    UseCountChars,
+    UseFillAttribute,
+    RunFullScreen,
+    ForceOnFeedback,
+    ForceOffFeedback,
+    UseStdHandles,
+    UseHotKey,
+    HasShellData,
+    TitleIsLinkName,
+    TitleIsAppId,
+    PreventPinning,
+    UntrustedSource = 15
 }
 
 /// Stores the necessary information to manipulate a process object.
@@ -566,6 +884,51 @@ mod tests {
     use crate::string::ImplString;
 
     #[test]
+    fn environment_block_current() {
+        unsafe {
+            let from_base = EnvironmentBlock::current_from_segment_base_teb().unwrap();
+            let from_block = EnvironmentBlock::current_from_block_teb().unwrap();
+
+            assert_ne!(from_base as *const _ as usize, 0);
+            assert_eq!(from_base as *const _ as usize, from_block as *const _ as usize);
+        }
+    }
+
+    #[test]
+    fn environment_block_being_debugged() {
+        unsafe {
+            let peb = EnvironmentBlock::current_from_block_teb().unwrap();
+
+            assert!(!peb.being_debugged());
+        }
+    }
+
+    #[test]
+    fn environment_block_flags() {
+        unsafe {
+            let peb = EnvironmentBlock::current_from_block_teb().unwrap();
+
+            assert_eq!(peb.flags, EnvironmentBlockFlags::new().set(
+                EnvironmentBlockFlag::IsImageDynamicallyRelocated, true
+            ));
+        }
+    }
+
+    #[test]
+    fn environment_block_loader() {
+        unsafe {
+            let peb = EnvironmentBlock::current_from_block_teb().unwrap();
+            let loader = peb.loader_data.as_deref().unwrap();
+            let ntdll = loader.
+                load_order_next.as_deref().unwrap().
+                load_order_next.as_deref().unwrap();
+            let ntdll_name = ntdll.image_name.as_ref();
+
+            assert_eq!(ntdll_name, "ntdll.dll");
+        }
+    }
+
+    #[test]
     fn process_kernel32() {
         let me = Process::current();
 
@@ -592,8 +955,8 @@ mod tests {
         let snap_me = snap_me.first().unwrap();
 
         assert!(snap_me.threads.len() > 0);
-        assert!(snap_me.process.image_name().starts_with("winapi2-"));
-        assert!(snap_me.process.image_name().ends_with(".exe"));
+        assert!(snap_me.process.image_name.as_ref().starts_with("winapi2-"));
+        assert!(snap_me.process.image_name.as_ref().ends_with(".exe"));
 
         let me_limited = Process::open_ntdll(
             &ClientId { process: info_all.id, thread: None },
@@ -628,8 +991,8 @@ mod tests {
         let snap_me = snap_me.first().unwrap();
 
         assert!(snap_me.threads.len() > 0);
-        assert!(snap_me.process.image_name().starts_with("winapi2-"));
-        assert!(snap_me.process.image_name().ends_with(".exe"));
+        assert!(snap_me.process.image_name.as_ref().starts_with("winapi2-"));
+        assert!(snap_me.process.image_name.as_ref().ends_with(".exe"));
 
         let me_limited = Process::open_syscall(
             &ClientId { process: info_all.id, thread: None },
