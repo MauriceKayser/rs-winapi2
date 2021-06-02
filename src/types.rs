@@ -18,13 +18,13 @@ impl Boolean {
     // TODO: Remove once traits can have const fns (https://github.com/rust-lang/rfcs/pull/2632).
     /// `const` implementation of `core::convert::Into<bool>`.
     #[cfg_attr(not(debug_assertions), inline(always))]
-    pub(crate) const fn into(self) -> bool {
+    pub(crate) const fn as_bool(&self) -> bool {
         self.0 != 0
     }
 
     /// Collects the last `Status` value if this boolean is `false`.
     #[cfg_attr(not(debug_assertions), inline(always))]
     pub(crate) fn to_status_result(self) -> crate::error::StatusResult {
-        (!self.into()).then(|| crate::error::Status::last().unwrap())
+        (!self.as_bool()).then(|| crate::error::Status::last().unwrap())
     }
 }

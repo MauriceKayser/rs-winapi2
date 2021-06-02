@@ -11,9 +11,26 @@ impl CommandLine {
     /// Retrieves the command line arguments of the current process.
     #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn get() -> Option<Self> {
+        #[cfg(not(any(winapi = "native", winapi = "syscall")))]
+        { Self::get_kernel32() }
+        #[cfg(any(winapi = "native", winapi = "syscall"))]
+        unsafe { Self::get_native() }
+    }
+
+    /// Retrieves the command line arguments of the current process.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn get_kernel32() -> Option<Self> {
         let buffer = unsafe { crate::dll::kernel32::GetCommandLineW() };
 
         (buffer as usize != 0).then(|| Self { buffer })
+    }
+
+    /// Retrieves the command line arguments of the current process.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub unsafe fn get_native() -> Option<Self> {
+        crate::process::EnvironmentBlock::current_from_block_teb()
+            .and_then(|peb| peb.parameters.as_deref())
+            .and_then(|parameters| Some(Self { buffer: parameters.command_line.buffer }))
     }
 
     /// Returns an iterator over the arguments in the command line string.
@@ -89,7 +106,15 @@ mod tests {
     // Test code.
 
     #[test]
-    fn iterator_all() {
+    fn command_line_get() {
+        let kernel32 = CommandLine::get_kernel32().unwrap();
+        let native = unsafe { CommandLine::get_native().unwrap() };
+
+        assert_eq!(kernel32.buffer, native.buffer);
+    }
+
+    #[test]
+    fn command_line_iterator() {
         // An empty input string results in the full program path.
         let command_line = CommandLine { buffer: [0].as_ptr() };
         let arguments: Vec<&crate::string::Str> =

@@ -75,7 +75,7 @@
 //! the application if no exception handlers are set up!
 
 #![deny(missing_docs)]
-#![feature(llvm_asm)]
+#![feature(asm, llvm_asm)]
 #![no_std]
 
 // External crates.
@@ -90,8 +90,11 @@ pub        mod console;
 pub        mod conversion;
 pub(crate) mod dll;
 pub        mod error;
+pub        mod gui;
 pub        mod heap;
 pub        mod io;
+#[macro_use]
+pub(crate) mod macros;
 pub        mod object;
 pub        mod process;
 pub        mod string;

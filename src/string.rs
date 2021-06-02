@@ -590,12 +590,21 @@ impl core::ops::IndexMut<core::ops::RangeFull> for String {
     }
 }
 
+/// Official documentation: [ANSI_STRING struct](https://docs.microsoft.com/en-us/windows/win32/api/ntdef/ns-ntdef-string).
+#[repr(C)]
+pub struct StringA<'a> {
+    length: u16,
+    capacity: u16,
+    buffer: *const AnsiChar,
+    _phantom: core::marker::PhantomData<&'a AnsiChar>
+}
+
 /// Official documentation: [UNICODE_STRING struct](https://docs.microsoft.com/en-us/windows/win32/api/ntdef/ns-ntdef-_unicode_string).
 #[repr(C)]
 pub struct StringW<'a> {
     length: u16,
     capacity: u16,
-    buffer: *const WideChar,
+    pub(crate) buffer: *const WideChar,
     _phantom: core::marker::PhantomData<&'a WideChar>
 }
 
@@ -612,9 +621,9 @@ impl<'a> StringW<'a> {
     }
 }
 
-impl<'a> core::convert::Into<&'a Str> for &'a StringW<'a> {
+impl<'a> core::convert::AsRef<Str> for StringW<'a> {
     #[cfg_attr(not(debug_assertions), inline(always))]
-    fn into(self) -> &'a Str {
+    fn as_ref(&self) -> &Str {
         core::convert::From::<&[WideChar]>::from(unsafe { core::slice::from_raw_parts(
             self.buffer,
             self.length as usize / core::mem::size_of::<WideChar>()
@@ -639,8 +648,11 @@ impl<'a> core::convert::From<&'a Str> for StringW<'a> {
 }
 
 /// Official documentation: [Working with Strings](https://docs.microsoft.com/en-us/windows/win32/learnwin32/working-with-strings).
+pub type AnsiChar = u8;
+
+/// Official documentation: [Working with Strings](https://docs.microsoft.com/en-us/windows/win32/learnwin32/working-with-strings).
 ///
-/// Strings on Windows are encoded in WTF-16.
+/// Strings on Windows are encoded in UCS-2.
 pub type WideChar = u16;
 
 #[cfg(test)]
@@ -713,7 +725,7 @@ mod tests {
             let str = StringW::from(Into::<&Str>::into(*input));
             assert_eq!(str.capacity, capacity * core::mem::size_of::<WideChar>() as u16);
             assert_eq!(str.length, length * core::mem::size_of::<WideChar>() as u16);
-            assert_eq!(Into::<&Str>::into(&str), data);
+            assert_eq!(str.as_ref(), data);
             assert_eq!(str.buffer(), buffer);
         }
     }

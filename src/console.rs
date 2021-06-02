@@ -70,7 +70,7 @@ impl Console {
 
                 if crate::dll::kernel32::GetConsoleMode(
                     output.clone(), _mode.as_mut_ptr()
-                ).into() {
+                ).as_bool() {
                     let converted = crate::string::String::from(text);
 
                     if crate::dll::kernel32::WriteConsoleW(
@@ -79,7 +79,7 @@ impl Console {
                         core::cmp::min(converted.len(), core::u32::MAX as usize) as u32,
                         written_size.as_mut_ptr(),
                         0 as *const _
-                    ).into() && written_size.assume_init() as usize == converted.len() {
+                    ).as_bool() && written_size.assume_init() as usize == converted.len() {
                         return None;
                     }
                 } else {
@@ -89,7 +89,7 @@ impl Console {
                         core::cmp::min(text.len(), core::u32::MAX as usize) as u32,
                         written_size.as_mut_ptr(),
                         None
-                    ).into() && written_size.assume_init() as usize == text.len() {
+                    ).as_bool() && written_size.assume_init() as usize == text.len() {
                         return None;
                     }
                 }
@@ -113,14 +113,14 @@ impl Console {
 
                 if crate::dll::kernel32::GetConsoleMode(
                     output.clone(), _mode.as_mut_ptr()
-                ).into() {
+                ).as_bool() {
                     if crate::dll::kernel32::WriteConsoleW(
                         output,
                         text.as_ptr(),
                         core::cmp::min(text.len(), core::u32::MAX as usize) as u32,
                         written_size.as_mut_ptr(),
                         0 as *const _
-                    ).into() && written_size.assume_init() as usize == text.len() {
+                    ).as_bool() && written_size.assume_init() as usize == text.len() {
                         return None;
                     }
                 } else {
@@ -132,7 +132,7 @@ impl Console {
                         core::cmp::min(converted.len(), core::u32::MAX as usize) as u32,
                         written_size.as_mut_ptr(),
                         None
-                    ).into() && written_size.assume_init() as usize == converted.len() {
+                    ).as_bool() && written_size.assume_init() as usize == converted.len() {
                         return None;
                     }
                 }

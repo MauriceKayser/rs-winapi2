@@ -909,7 +909,7 @@ pub(crate) enum Information {
 
     // These are special versions of these operations (defined earlier)
     // which can be used by kernel mode drivers only to bypass security
-    // access checks for Rename and HardLink operations.  These operations
+    // access checks for Rename and HardLink operations. These operations
     // are only recognized by the IOManager, a file system should never
     // receive these.
     RenameBypassAccessCheck,

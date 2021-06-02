@@ -138,7 +138,7 @@ impl Handle {
         #[cfg(not(any(winapi = "native", winapi = "syscall")))]
         {
             let closed = unsafe { crate::dll::kernel32::CloseHandle(self) };
-            debug_assert!(closed.into());
+            debug_assert!(closed.as_bool());
         }
         #[cfg(winapi = "native")]
         {
