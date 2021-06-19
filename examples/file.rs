@@ -51,7 +51,7 @@ fn calc_architecture() {
     };
     let offset_pe_header: &u32 = unsafe { winapi2::conversion::cast_mut(winapi2::File::read_syscall(
         &file, &mut offset_pe_header, Some(&0x3C), None
-    ).unwrap()).unwrap() };
+    ).unwrap(), 0).unwrap() };
 
     // Read and check the PE header signature.
     let mut pe_header_signature = unsafe {
@@ -70,7 +70,7 @@ fn calc_architecture() {
     };
     let architecture: &u16 = unsafe { winapi2::conversion::cast_mut(winapi2::File::read_syscall(
         &file, &mut architecture, None, None
-    ).unwrap()).unwrap() };
+    ).unwrap(), 0).unwrap() };
 
     winapi2::println!("Architecture: {}", match *architecture {
         0x014C => "x86_32",

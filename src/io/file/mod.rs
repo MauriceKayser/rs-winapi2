@@ -2612,7 +2612,7 @@ mod tests {
         let offset_pe_header: &u32 = unsafe { crate::conversion::cast_mut(file.read_kernel32(
             &mut offset_pe_header,
             Some(&mut crate::io::Overlapped::new(0x3C, None))
-        ).unwrap()).unwrap() };
+        ).unwrap(), 0).unwrap() };
 
         // Read and check the PE header signature.
         let mut pe_header_signature = unsafe {
@@ -2695,7 +2695,7 @@ mod tests {
                 core::mem::MaybeUninit::<[core::mem::MaybeUninit<u8>; 4]>::uninit().assume_init()
             };
             let offset_pe_header: &u32 = unsafe { crate::conversion::cast_mut(
-                f.1(&file, &mut offset_pe_header, Some(&0x3C), None).unwrap()
+                f.1(&file, &mut offset_pe_header, Some(&0x3C), None).unwrap(), 0
             ).unwrap() };
 
             // Read and check the PE header signature.

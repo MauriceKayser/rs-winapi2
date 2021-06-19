@@ -93,7 +93,7 @@ impl<'a> core::iter::Iterator for CommandLineIterator<'a> {
         self.index += 1;
 
         Some(unsafe { crate::string::Str::from_terminated(
-            parameter_ptr, self.exclude_zero_terminator
+            parameter_ptr, None, self.exclude_zero_terminator
         ) })
     }
 }

@@ -839,7 +839,7 @@ impl<'a> core::iter::Iterator for RuntimeSnapshotIterator<'a> {
 
         // Cast the buffer to an `InformationProcess` struct.
         let process: &crate::system::InformationProcess = unsafe {
-            crate::conversion::cast(&self.snapshot.buffer[self.index..])?
+            crate::conversion::cast(self.snapshot.buffer.as_ref(), self.index)?
         };
 
         let mut threads = Vec::new();
@@ -849,7 +849,7 @@ impl<'a> core::iter::Iterator for RuntimeSnapshotIterator<'a> {
             for _ in 0..process.thread_count {
                 // Cast the buffer to an `InformationThread` struct.
                 let thread: &crate::system::InformationThread = unsafe {
-                    crate::conversion::cast(&self.snapshot.buffer[self.index + index..])?
+                    crate::conversion::cast(self.snapshot.buffer.as_ref(), self.index + index)?
                 };
 
                 threads.push(thread);
