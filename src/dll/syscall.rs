@@ -92,144 +92,79 @@ impl Ids {
     }
 }
 
-// TODO: Add x86 assembly shell code variant.
-// TODO: Handle more than 11 parameters (if necessary).
-// TODO: Handle WoW64?
+// TODO: Add x86 assembly shell code variant and optionally handle WoW64?
 #[cfg(target_arch = "x86_64")]
 macro_rules! syscall {
-    ($id:ident) => {
-        syscall!(#1 $id)
-    };
-    ($id:ident, $p1:ident) => {
-        syscall!(#1 $id, "{rcx}"($p1))
-    };
-    ($id:ident, $p1:ident, $p2:ident) => {
-        syscall!(#1 $id, "{rcx}"($p1), "{rdx}"($p2))
-    };
-    ($id:ident, $p1:ident, $p2:ident, $p3:ident) => {
-        syscall!(#1 $id, "{rcx}"($p1), "{rdx}"($p2), "{r8}"($p3))
-    };
-    ($id:ident, $p1:ident, $p2:ident, $p3:ident, $p4:ident) => {
-        syscall!(#1 $id, "{rcx}"($p1), "{rdx}"($p2), "{r8}"($p3), "{r9}"($p4))
-    };
-    (#1 $id:ident, $($input:tt)*) => {
+    ($id:ident) => { syscall!(#1 $id) };
+    ($id:ident, $p1:ident) => { syscall!(#1 $id,
+        inout("rcx") $p1 => _,
+        out("rdx") _,
+        out("r8") _,
+        out("r9") _
+    ) };
+    ($id:ident, $p1:ident, $p2:ident) => { syscall!(#1 $id,
+        inout("rcx") $p1 => _,
+        inout("rdx") $p2 => _,
+        out("r8") _,
+        out("r9") _
+    ) };
+    ($id:ident, $p1:ident, $p2:ident, $p3:ident) => { syscall!(#1 $id,
+        inout("rcx") $p1 => _,
+        inout("rdx") $p2 => _,
+        inout("r8") $p3 => _,
+        out("r9") _
+    ) };
+    ($id:ident, $p1:ident, $p2:ident, $p3:ident, $p4:ident) => { syscall!(#1 $id,
+        inout("rcx") $p1 => _,
+        inout("rdx") $p2 => _,
+        inout("r8") $p3 => _,
+        inout("r9") $p4 => _
+    ) };
+    // More than 4 arguments have to be passed via the stack.
+    //
+    // Since `asm!` does not allow `in("rsp")` it is passed in and transferred to `rsp` in
+    // the assembly code via `in(reg)`.
+    //
+    // The stack has to be a reference to an array of pointer-sized values and has to begin with
+    // `1 (return address) + 4 (shadow space)` pointer-sized values, and is followed by all other
+    // arguments that the system call receives.
+    ($id:ident, $p1:ident, $p2:ident, $p3:ident, $p4:ident, stack: $stack:ident) => {
         syscall!(#2 $id, "
-            sub rsp, 0x20
+            xchg rsp, {0}
             mov r10, rcx
             syscall
-            add rsp, 0x20
-        ", $($input)*)
+            xchg rsp, {0}
+            ",
+            in(reg) $stack,
+            inout("rcx") $p1 => _,
+            inout("rdx") $p2 => _,
+            inout("r8") $p3 => _,
+            inout("r9") $p4 => _,
+            out("r10") _,
+            out("r11") _
+        )
     };
-    ($id:ident, $p1:ident, $p2:ident, $p3:ident, $p4:ident, $p5:ident) => {
+    (#1 $id:ident, $($registers:tt)*) => {
         syscall!(#2 $id, "
-            sub rsp, 0x30
-            mov [rsp + 0x28], $6
             mov r10, rcx
             syscall
-            add rsp, 0x30
-        ", "{rcx}"($p1), "{rdx}"($p2), "{r8}"($p3), "{r9}"($p4), "rn"($p5))
+            ",
+            out("r10") _,
+            out("r11") _,
+            $($registers)*
+        )
     };
-    ($id:ident, $p1:ident, $p2:ident, $p3:ident, $p4:ident, $p5:ident, $p6:ident) => {
-        syscall!(#2 $id, "
-            sub rsp, 0x40
-            mov [rsp + 0x28], $6
-            mov [rsp + 0x30], $7
-            mov r10, rcx
-            syscall
-            add rsp, 0x40
-        ", "{rcx}"($p1), "{rdx}"($p2), "{r8}"($p3), "{r9}"($p4), "rn"($p5), "rn"($p6))
-    };
-    ($id:ident, $p1:ident, $p2:ident, $p3:ident, $p4:ident, $p5:ident, $p6:ident, $p7:ident) => {
-        syscall!(#2 $id, "
-            sub rsp, 0x40
-            mov [rsp + 0x28], $6
-            mov [rsp + 0x30], $7
-            mov [rsp + 0x38], $8
-            mov r10, rcx
-            syscall
-            add rsp, 0x40
-        ", "{rcx}"($p1), "{rdx}"($p2), "{r8}"($p3), "{r9}"($p4), "rn"($p5), "rn"($p6), "rn"($p7))
-    };
-    ($id:ident, $p1:ident, $p2:ident, $p3:ident, $p4:ident, $p5:ident, $p6:ident, $p7:ident,
-     $p8:ident)
-    => {
-        syscall!(#2 $id, "
-            sub rsp, 0x50
-            mov [rsp + 0x28], $6
-            mov [rsp + 0x30], $7
-            mov [rsp + 0x38], $8
-            mov [rsp + 0x40], $9
-            mov r10, rcx
-            syscall
-            add rsp, 0x50
-        ", "{rcx}"($p1), "{rdx}"($p2), "{r8}"($p3), "{r9}"($p4), "rn"($p5), "rn"($p6), "rn"($p7),
-        "rn"($p8))
-    };
-    ($id:ident, $p1:ident, $p2:ident, $p3:ident, $p4:ident, $p5:ident, $p6:ident, $p7:ident,
-     $p8:ident, $p9:ident)
-    => {
-        syscall!(#2 $id, "
-            sub rsp, 0x50
-            mov [rsp + 0x28], $6
-            mov [rsp + 0x30], $7
-            mov [rsp + 0x38], $8
-            mov [rsp + 0x40], $9
-            mov [rsp + 0x48], $10
-            mov r10, rcx
-            syscall
-            add rsp, 0x50
-        ", "{rcx}"($p1), "{rdx}"($p2), "{r8}"($p3), "{r9}"($p4), "rn"($p5), "rn"($p6), "rn"($p7),
-        "rn"($p8), "rn"($p9))
-    };
-    ($id:ident, $p1:ident, $p2:ident, $p3:ident, $p4:ident, $p5:ident, $p6:ident, $p7:ident,
-     $p8:ident, $p9:ident, $p10:ident)
-    => {
-        syscall!(#2 $id, "
-            sub rsp, 0x60
-            mov [rsp + 0x28], $6
-            mov [rsp + 0x30], $7
-            mov [rsp + 0x38], $8
-            mov [rsp + 0x40], $9
-            mov [rsp + 0x48], $10
-            mov [rsp + 0x50], $11
-            mov r10, rcx
-            syscall
-            add rsp, 0x60
-        ", "{rcx}"($p1), "{rdx}"($p2), "{r8}"($p3), "{r9}"($p4), "rn"($p5), "rn"($p6), "rn"($p7),
-        "rn"($p8), "rn"($p9), "rn"($p10))
-    };
-    ($id:ident, $p1:ident, $p2:ident, $p3:ident, $p4:ident, $p5:ident, $p6:ident, $p7:ident,
-     $p8:ident, $p9:ident, $p10:ident, $p11:ident)
-    => {
-        syscall!(#2 $id, "
-            sub rsp, 0x60
-            mov [rsp + 0x28], $6
-            mov [rsp + 0x30], $7
-            mov [rsp + 0x38], $8
-            mov [rsp + 0x40], $9
-            mov [rsp + 0x48], $10
-            mov [rsp + 0x50], $11
-            mov [rsp + 0x58], $12
-            mov r10, rcx
-            syscall
-            add rsp, 0x60
-        ", "{rcx}"($p1), "{rdx}"($p2), "{r8}"($p3), "{r9}"($p4), "rn"($p5), "rn"($p6), "rn"($p7),
-        "rn"($p8), "rn"($p9), "rn"($p10), "rn"($p11))
-    };
-    (#2 $id:ident, $command:expr, $($input:tt)*) => {{
+    (#2 $id:ident, $instructions:expr, $($registers:tt)*) => {{
         let index = match IDS {
-            Some(ref ids) => ids.$id,
+            Some(ref ids) => ids.$id as u32,
             None => return Some(crate::error::NtStatusValue::InvalidSystemService.into())
-        } as usize;
+        };
 
         let result: u32;
-        // TODO: Upgrade to new `asm!` macro, see https://github.com/rust-lang/rfcs/pull/2873
-        llvm_asm!(
-            $command :
-            "={eax}"(result) :
-            "{eax}"(index), $($input)* :
-            "r10" :
-            "intel", "volatile"
+        asm!(
+            $instructions,
+            $($registers)*,
+            inout("eax") index => result
         );
 
         *(&result as *const _ as *const crate::error::NtStatusResult)
@@ -243,7 +178,7 @@ macro_rules! syscall {
 pub(crate) unsafe fn NtClose(
     object: crate::object::Handle
 ) -> crate::error::NtStatusResult {
-    let object = *(&object as *const _ as *const isize);
+    let object = *(&object as *const _ as *const usize);
 
     syscall!(close, object)
 }
@@ -270,15 +205,18 @@ pub(crate) unsafe fn NtCreateFile(
     extended_attributes: Option<&crate::io::file::ntfs::ExtendedAttributesInformation>,
     extended_attributes_size: u32
 ) -> crate::error::NtStatusResult {
-    let attributes = *(&attributes as *const _ as *const u32) as usize;
-    let share_modes = *(&share_modes as *const _ as *const u32) as usize;
-    let creation_options = *(&creation_options as *const _ as *const u32) as usize;
+    let stack = &[
+        0usize, 0, 0, 0, 0,
+        *(&allocation_size as *const _ as *const usize),
+        *(&attributes as *const _ as *const u32) as usize,
+        *(&share_modes as *const _ as *const u32) as usize,
+        creation_disposition as usize,
+        *(&creation_options as *const _ as *const u32) as usize,
+        *(&extended_attributes as *const _ as *const usize),
+        extended_attributes_size as usize
+    ];
 
-    syscall!(create_file,
-        handle, access_modes, object_attributes, io_status_block, allocation_size, attributes,
-        share_modes, creation_disposition, creation_options, extended_attributes,
-        extended_attributes_size
-    )
+    syscall!(create_file, handle, access_modes, object_attributes, io_status_block, stack: stack)
 }
 
 /// Official documentation: [ntdll.NtOpenProcess](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-ntopenprocess).
@@ -315,7 +253,14 @@ pub(crate) unsafe fn NtQueryInformationFile(
     buffer_size: u32,
     information: crate::io::file::Information,
 ) -> crate::error::NtStatusResult {
-    syscall!(query_information_file, file, io_status_block, buffer, buffer_size, information)
+    let file = *(&file as *const _ as *const usize);
+
+    let stack = &[
+        0usize, 0, 0, 0, 0,
+        information as usize
+    ];
+
+    syscall!(query_information_file, file, io_status_block, buffer, buffer_size, stack: stack)
 }
 
 /// Official documentation: [ntdll.NtQueryInformationProcess](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationprocess).
@@ -328,7 +273,15 @@ pub(crate) unsafe fn NtQueryInformationProcess(
     buffer_size: u32,
     written_size: *mut u32
 ) -> crate::error::NtStatusResult {
-    syscall!(query_information_process, process, information, buffer, buffer_size, written_size)
+    let process = *(&process as *const _ as *const usize);
+    let information = information as usize;
+
+    let stack = &[
+        0usize, 0, 0, 0, 0,
+        written_size as usize
+    ];
+
+    syscall!(query_information_process, process, information, buffer, buffer_size, stack: stack)
 }
 
 /// Official documentation: [ntdll.NtQuerySystemInformation](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntquerysysteminformation).
@@ -338,8 +291,11 @@ pub(crate) unsafe fn NtQuerySystemInformation(
     information: crate::system::Information,
     buffer: *const u8,
     buffer_size: u32,
-    return_size: Option<&u32>
+    return_size: Option<&mut u32>
 ) -> crate::error::NtStatusResult {
+    let information = information as usize;
+    let return_size = *(&return_size as *const _ as *const usize);
+
     syscall!(query_system_information, information, buffer, buffer_size, return_size)
 }
 
@@ -357,9 +313,19 @@ pub(crate) unsafe fn NtReadFile(
     offset: Option<&u64>,
     _key: Option<&u32>
 ) -> crate::error::NtStatusResult {
-    syscall!(read_file,
-        file, event, _apc_routine, _apc_context, io_status_block, buffer, buffer_size, offset, _key
-    )
+    let file = *(&file as *const _ as *const usize);
+    let event = *(&event as *const _ as *const usize);
+
+    let stack = &[
+        0usize, 0, 0, 0, 0,
+        io_status_block as usize,
+        buffer as usize,
+        buffer_size as usize,
+        *(&offset as *const _ as *const usize),
+        *(&_key as *const _ as *const usize)
+    ];
+
+    syscall!(read_file, file, event, _apc_routine, _apc_context, stack: stack)
 }
 
 /// Official documentation: [ntdll.NtTerminateProcess](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-zwterminateprocess).
@@ -369,7 +335,7 @@ pub(crate) unsafe fn NtTerminateProcess(
     process: crate::object::Handle,
     exit_code: u32
 ) -> crate::error::NtStatusResult {
-    let process = *(&process as *const _ as *const isize);
+    let process = *(&process as *const _ as *const usize);
 
     syscall!(terminate_process, process, exit_code)
 }
@@ -388,7 +354,17 @@ pub(crate) unsafe fn NtWriteFile(
     offset: Option<&u64>,
     _key: Option<&u32>
 ) -> crate::error::NtStatusResult {
-    syscall!(write_file,
-        file, event, _apc_routine, _apc_context, io_status_block, buffer, buffer_size, offset, _key
-    )
+    let file = *(&file as *const _ as *const usize);
+    let event = *(&event as *const _ as *const usize);
+
+    let stack = &[
+        0usize, 0, 0, 0, 0,
+        io_status_block as usize,
+        buffer as usize,
+        buffer_size as usize,
+        *(&offset as *const _ as *const usize),
+        *(&_key as *const _ as *const usize)
+    ];
+
+    syscall!(write_file, file, event, _apc_routine, _apc_context, stack: stack)
 }

@@ -66,7 +66,7 @@ extern "system" {
         information: crate::system::Information,
         buffer: *const u8,
         buffer_size: u32,
-        return_size: Option<&u32>
+        return_size: Option<&mut u32>
     ) -> crate::error::NtStatusResult;
 
     /// Official documentation [ntdll.NtReadFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntreadfile).

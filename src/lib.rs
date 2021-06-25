@@ -75,7 +75,12 @@
 //! the application if no exception handlers are set up!
 
 #![deny(missing_docs)]
-#![feature(asm, llvm_asm, option_result_unwrap_unchecked)]
+
+// Features:
+// - [asm](https://github.com/rust-lang/rust/issues/72016)
+// - [option_result_unwrap_unchecked](https://github.com/rust-lang/rust/issues/81383)
+// - [unchecked_math](https://github.com/rust-lang/rfcs/issues/2508)
+#![feature(asm, option_result_unwrap_unchecked, unchecked_math)]
 #![no_std]
 
 // External crates.
