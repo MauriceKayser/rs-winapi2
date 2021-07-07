@@ -101,6 +101,7 @@ pub        mod io;
 #[macro_use]
 pub(crate) mod macros;
 pub        mod object;
+pub        mod pe;
 pub        mod process;
 pub        mod string;
 pub        mod system;

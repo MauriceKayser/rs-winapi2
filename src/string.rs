@@ -95,6 +95,23 @@ impl AnsiStr {
         Self::from_terminated_mut(terminated_string as _, max_length, exclude_zero_terminator)
     }
 
+    /// Returns a possibly zero-terminated string reference from a zero-terminated string pointer.
+    /// If `max_length` is reached before a zero-terminator is found, the returned string will not
+    /// contain a zero-terminator.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub(crate) unsafe fn from_terminated_with_offset<'a>(
+        terminated_string: *const AnsiChar,
+        offset: usize,
+        max_length: Option<core::num::NonZeroUsize>,
+        exclude_zero_terminator: bool
+    ) -> &'a Self {
+        Self::from_terminated_mut(
+            (terminated_string as usize).unchecked_add(offset) as _,
+            max_length,
+            exclude_zero_terminator
+        )
+    }
+
     /// Returns a possibly zero-terminated, mutable string reference from a zero-terminated string
     /// pointer. If `max_length` is reached before a zero-terminator is found, the returned string
     /// will not contain a zero-terminator.
