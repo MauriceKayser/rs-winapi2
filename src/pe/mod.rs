@@ -7,6 +7,7 @@
 use core::convert::TryFrom;
 use core::mem::size_of;
 
+pub mod base_relocation;
 pub mod export;
 
 /// A parser for PE files.
@@ -29,6 +30,12 @@ impl<'a> PeFile<'a> {
             size_after_optional_header: None,
             directories: None
         }
+    }
+
+    /// Creates an iterator over the base relocations.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn base_relocations(&mut self) -> Option<base_relocation::Iterator<'a>> {
+        base_relocation::Iterator::new(self)
     }
 
     /// Creates an iterator over the exported functions and data.
