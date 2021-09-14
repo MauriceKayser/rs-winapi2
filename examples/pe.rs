@@ -21,9 +21,9 @@ fn main() {
     for export in parser.exports(true).unwrap() {
         winapi2::print!("- ({}): {} ", export.ordinal, export.name);
         match export.data {
-            winapi2::pe::ExportData::InModule(buffer) => winapi2::println!("in module at 0x{:X}", buffer.as_ptr() as usize),
-            winapi2::pe::ExportData::OutOfModule(address) => winapi2::println!("out of module at 0x{:X}", address as usize),
-            winapi2::pe::ExportData::Forwarded(forwarder) => winapi2::println!("forwards to: {}", forwarder.into_lossy())
+            winapi2::pe::export::Data::InModule(buffer) => winapi2::println!("in module at 0x{:X}", buffer.as_ptr() as usize),
+            winapi2::pe::export::Data::OutOfModule(address) => winapi2::println!("out of module at 0x{:X}", address as usize),
+            winapi2::pe::export::Data::Forwarded(forwarder) => winapi2::println!("forwards to: {}", forwarder.into_lossy())
         }
     }
 }
