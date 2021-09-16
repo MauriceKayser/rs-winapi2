@@ -40,12 +40,12 @@ in the `eax` register.
 
 The crate loads these indices from the `crate::SYSCALL_IDS` variable, which must be set by the
 crate user prior to any `winapi2` usage. Either set them explicitly, or call a function like
-`winapi2::SyscallIds::initialize_10_1909` to outsource the task to the library itself:
+`winapi2::SyscallIds::initialize_statically` to outsource the task to the library itself:
 
 ```rust
 fn main() {
     // Either outsourced:
-    winapi2::SyscallIds::initialize_10_1909();
+    winapi2::SyscallIds::initialize_statically();
 
     // Or explicit:
     #[cfg(target_arch = "x86")]

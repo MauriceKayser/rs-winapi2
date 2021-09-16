@@ -838,7 +838,7 @@ impl<'a> core::iter::Iterator for RuntimeSnapshotIterator<'a> {
         if self.is_done { return None; }
 
         // Cast the buffer to an `InformationProcess` struct.
-        let process: &crate::system::InformationProcess = unsafe {
+        let process: &crate::system::info::Process = unsafe {
             crate::conversion::cast(self.snapshot.buffer.as_ref(), self.index)?
         };
 
@@ -848,7 +848,7 @@ impl<'a> core::iter::Iterator for RuntimeSnapshotIterator<'a> {
         if self.include_threads {
             for _ in 0..process.thread_count {
                 // Cast the buffer to an `InformationThread` struct.
-                let thread: &crate::system::InformationThread = unsafe {
+                let thread: &crate::system::info::Thread = unsafe {
                     crate::conversion::cast(self.snapshot.buffer.as_ref(), self.index + index)?
                 };
 
@@ -871,11 +871,11 @@ impl<'a> core::iter::Iterator for RuntimeSnapshotIterator<'a> {
 #[derive(Debug)]
 pub struct RuntimeInformation<'a> {
     /// Stores information about the process.
-    pub process: &'a crate::system::InformationProcess<'a>,
+    pub process: &'a crate::system::info::Process<'a>,
 
     /// Optionally stores information about the process's threads, if `include_threads` was
     /// set to `true` when calling `RuntimeSnapshot::iter`.
-    pub threads: Vec<&'a crate::system::InformationThread>
+    pub threads: Vec<&'a crate::system::info::Thread>
 }
 
 #[cfg(test)]

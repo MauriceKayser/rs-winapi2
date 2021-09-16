@@ -1,224 +1,11 @@
-//! All system related Windows types.
-
-/// Official documentation: [SYSTEM_INFORMATION_CLASS enum](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntquerysysteminformation).
-///
-/// Unofficial documentation: [SYSTEM_INFORMATION_CLASS enum](https://www.geoffchappell.com/studies/windows/km/ntoskrnl/api/ex/sysinfo/class.htm).
-#[allow(unused)]
-#[derive(Copy, Clone, Debug)]
-#[repr(u32)]
-pub(crate) enum Information {
-    Basic,
-    Processor,
-    Performance,
-    TimeOfDay,
-    Path,
-    Process,
-    CallCount,
-    Device,
-    ProcessorPerformance,
-    Flags,
-    CallTime,
-    Module,
-    Locks,
-    StackTrace,
-    PagedPool,
-    NonPagedPool,
-    Handle,
-    Object,
-    PageFile,
-    VdmInstEmul,
-    VdmBop,
-    FileCache,
-    PoolTag,
-    Interrupt,
-    DpcBehavior,
-    FullMemory,
-    LoadGdiDriver,
-    UnloadGdiDriver,
-    TimeAdjustment,
-    SummaryMemory,
-    MirrorMemory,
-    PerformanceTrace,
-    CrashDump,
-    Exception,
-    CrashDumpState,
-    KernelDebugger,
-    ContextSwitch,
-    RegistryQuota,
-    ExtendServiceTable,
-    PrioritySeparation,
-    VerifierAddDriver,
-    VerifierRemoveDriver,
-    ProcessorIdle,
-    LegacyDriver,
-    CurrentTimeZone,
-    LookAside,
-    TimeSlipNotification,
-    SessionCreate,
-    SessionDetach,
-    Session,
-    RangeStart,
-    Verifier,
-    VerifierThunkExtend,
-    SessionProcess,
-    LoadGdiDriverInSystemSpace,
-    NumaProcessorMap,
-    Prefetcher,
-    ExtendedProcess,
-    RecommendedSharedDataAlignment,
-    ComPlusPackage,
-    NumaAvailableMemory,
-    ProcessorPower,
-    EmulationBasic,
-    EmulationProcessor,
-    ExtendedHandle,
-    LostDelayedWrite,
-    BigPool,
-    SessionPoolTag,
-    SessionMappedView,
-    HotPatch,
-    ObjectSecurityMode,
-    WatchdogTimerHandler,
-    WatchdogTimer,
-    LogicalProcessor,
-    Wow64Shared,
-    RegisterFirmwareTableInformationHandler,
-    FirmwareTable,
-    ModuleEx,
-    VerifierTriage,
-    Superfetch,
-    MemoryList,
-    FileCacheEx,
-    ThreadPriorityClientId,
-    ProcessorIdleCycleTime,
-    VerifierCancellation,
-    ProcessorPowerEx,
-    RefTrace,
-    SpecialPool,
-    ProcessId,
-    ErrorPort,
-    BootEnvironment,
-    Hypervisor,
-    VerifierEx,
-    TimeZone,
-    ImageFileExecutionOptions,
-    Coverage,
-    PrefetchPatch,
-    VerifierFaults,
-    SystemPartition,
-    SystemDisk,
-    ProcessorPerformanceDistribution,
-    NumaProximityNode,
-    DynamicTimeZone,
-    CodeIntegrity,
-    ProcessorMicrocodeUpdate,
-    ProcessorBrandString,
-    VirtualAddress,
-    LogicalProcessorAndGroup,
-    ProcessorCycleTime,
-    Store,
-    RegistryAppendString,
-    AitSamplingValue,
-    VhdBoot,
-    CpuQuota,
-    NativeBasic,
-    ErrorPortTimeouts,
-    LowPriorityIo,
-    BootEntropy,
-    VerifierCounters,
-    PagedPoolEx,
-    SystemPtesEx,
-    NodeDistance,
-    AcpiAudit,
-    BasicPerformance,
-    QueryPerformanceCounter,
-    SessionBigPool,
-    BootGraphics,
-    ScrubPhysicalMemory,
-    BadPage,
-    ProcessorProfileControlArea,
-    CombinePhysicalMemory,
-    EntropyInterruptTiming,
-    Console,
-    PlatformBinary,
-    Policy,
-    HypervisorProcessorCount,
-    DeviceData,
-    DeviceDataEnumeration,
-    MemoryTopology,
-    MemoryChannel,
-    BootLogo,
-    ProcessorPerformanceEx,
-    CriticalProcessErrorLog,
-    SecureBootPolicy,
-    PageFileEx,
-    SecureBoot,
-    EntropyInterruptTimingRaw,
-    PortableWorkspaceEfiLauncher,
-    FullProcess,
-    KernelDebuggerEx,
-    BootMetadata,
-    SoftReboot,
-    ElamCertificate,
-    OfflineDumpConfig,
-    ProcessorFeatures,
-    RegistryReconciliation,
-    Edid,
-    Manufacturing,
-    EnergyEstimationConfig,
-    HypervisorDetail,
-    ProcessorCycleStats,
-    VmGenerationCount,
-    TrustedPlatformModule,
-    KernelDebuggerFlags,
-    CodeIntegrityPolicy,
-    IsolatedUserMode,
-    HardwareSecurityTestInterfaceResults,
-    SingleModule,
-    AllowedCpuSets,
-    DmaProtection,
-    InterruptCpuSets,
-    SecureBootPolicyFull,
-    CodeIntegrityPolicyFull,
-    AffinitizedInterruptProcessor,
-    RootSilo,
-    CpuSet,
-    CpuSetTag,
-    Win32WerStartCallout,
-    SecureKernelProfile,
-    CodeIntegrityPlatformManifest,
-    InterruptSteering,
-    SupportedProcessorArchitectures,
-    MemoryUsage,
-    CodeIntegrityCertificate,
-    PhysicalMemory,
-    ControlFlowTransition,
-    KernelDebuggingAllowed,
-    ActivityModerationExeState,
-    ActivityModerationUserSettings,
-    CodeIntegrityPoliciesFull,
-    CodeIntegrityUnlock,
-    IntegrityQuota,
-    Flush,
-    ProcessorIdleMask,
-    SecureDumpEncryption,
-    WriteConstraint,
-    KernelVaShadow,
-    HypervisorSharedPage,
-    FirmwareBootPerformance,
-    CodeIntegrityVerification,
-    FirmwarePartition,
-    SpeculationControl,
-    DmaGuardPolicy,
-    EnclaveLaunchControl
-}
+//! All system information related Windows types.
 
 /// Official documentation: [SYSTEM_PROCESS_INFORMATION struct](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/66ef46a7-504f-4696-9613-0bd8446ee225).
 ///
 /// Unofficial documentation: [SYSTEM_PROCESS_INFORMATION struct](https://www.geoffchappell.com/studies/windows/km/ntoskrnl/api/ex/sysinfo/process.htm).
 #[allow(missing_docs)]
 #[repr(C)]
-pub struct InformationProcess<'a> {
+pub struct Process<'a> {
     pub(crate) next_offset: Option<core::num::NonZeroU32>,
     pub(crate) thread_count: u32,
     pub working_set_private_size: i64,
@@ -255,7 +42,7 @@ pub struct InformationProcess<'a> {
     pub transfer_other_count: i64
 }
 
-impl<'a> InformationProcess<'a> {
+impl<'a> Process<'a> {
     #[allow(missing_docs)]
     #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn base_priority(&self) -> Result<crate::process::thread::PriorityLevel, i32> {
@@ -263,7 +50,7 @@ impl<'a> InformationProcess<'a> {
     }
 }
 
-impl<'a> core::fmt::Debug for InformationProcess<'a> {
+impl<'a> core::fmt::Debug for Process<'a> {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         f.debug_struct(stringify!(InformationProcess))
             .field(stringify!(working_set_private_size), &self.working_set_private_size)
@@ -305,7 +92,7 @@ impl<'a> core::fmt::Debug for InformationProcess<'a> {
 /// Official documentation: [SYSTEM_THREAD_INFORMATION struct](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/e82d73e4-cedb-4077-9099-d58f3459722f).
 #[allow(missing_docs)]
 #[repr(C)]
-pub struct InformationThread {
+pub struct Thread {
     pub kernel_time: i64,
     pub user_time: i64,
     pub create_time: crate::io::file::Time,
@@ -319,7 +106,7 @@ pub struct InformationThread {
     wait_reason_: u32
 }
 
-impl InformationThread {
+impl Thread {
     #[allow(missing_docs)]
     #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn base_priority(&self) -> Result<crate::process::thread::PriorityLevel, i32> {
@@ -345,7 +132,7 @@ impl InformationThread {
     }
 }
 
-impl core::fmt::Debug for InformationThread {
+impl core::fmt::Debug for Thread {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         f.debug_struct(stringify!(InformationThread))
             .field(stringify!(kernel_time), &self.kernel_time)

@@ -40,12 +40,12 @@
 //!
 //! The crate loads these indices from the `crate::SYSCALL_IDS` variable, which must be set by the
 //! crate user prior to any `winapi2` usage. Either set them explicitly, or call a function like
-//! `winapi2::SyscallIds::initialize_10_1909` to outsource the task to the library itself:
+//! `winapi2::SyscallIds::initialize_statically` to outsource the task to the library itself:
 //!
 //! ```ignore
 //! fn main() {
 //!     // Either outsourced:
-//!     winapi2::SyscallIds::initialize_10_1909();
+//!     winapi2::SyscallIds::initialize_statically();
 //!
 //!     // Or explicit:
 //!     #[cfg(target_arch = "x86")]
@@ -124,6 +124,6 @@ pub use dll::syscall::{
 #[cfg(test)]
 fn init_syscall_ids() {
     if unsafe { SYSCALL_IDS.is_none() } {
-        SyscallIds::initialize_10_1909();
+        SyscallIds::initialize_statically();
     }
 }
