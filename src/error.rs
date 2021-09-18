@@ -15,10 +15,48 @@ pub type StatusResult = Option<Status>;
 /// An instance of this type is returned from functions that internally call Windows API functions
 /// which return either a `Status` or an `NtStatus`.
 #[allow(missing_docs)]
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Error {
     NtStatus(NtStatus),
     Status(Status)
+}
+
+impl core::convert::From<NtStatus> for Error {
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    fn from(value: NtStatus) -> Self {
+        Self::NtStatus(value)
+    }
+}
+
+impl core::convert::From<NtStatusValue> for Error {
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    fn from(value: NtStatusValue) -> Self {
+        Self::NtStatus(value.into())
+    }
+}
+
+impl core::convert::From<Status> for Error {
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    fn from(value: Status) -> Self {
+        Self::Status(value)
+    }
+}
+
+impl core::convert::From<StatusValue> for Error {
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    fn from(value: StatusValue) -> Self {
+        Self::Status(value.into())
+    }
+}
+
+impl core::convert::Into<u32> for Error {
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    fn into(self) -> u32 {
+        match self {
+            Self::NtStatus(status) => status.into(),
+            Self::Status(status) => status.into()
+        }
+    }
 }
 
 /// Official documentation: [NTSTATUS struct](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/87fba13e-bf06-450e-83b1-9241dc81e781).
@@ -29,11 +67,16 @@ pub enum Error {
 #[repr(transparent)]
 pub struct NtStatus(core::num::NonZeroU32);
 
-impl NtStatus {
-    // TODO: Remove once traits can have const fns (https://github.com/rust-lang/rfcs/pull/2632).
-    /// `const` implementation of `core::convert::Into<u32>`.
+impl core::convert::From<NtStatusValue> for NtStatus {
     #[cfg_attr(not(debug_assertions), inline(always))]
-    pub const fn into(self) -> u32 {
+    fn from(value: NtStatusValue) -> Self {
+        unsafe { NtStatus(core::num::NonZeroU32::new_unchecked(value as u32)) }
+    }
+}
+
+impl core::convert::Into<u32> for NtStatus {
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    fn into(self) -> u32 {
         self.0.get()
     }
 }
@@ -1839,15 +1882,6 @@ pub enum NtStatusValue {
     VhdDifferencingChainErrorInParent = 0xC03A0019
 }
 
-impl NtStatusValue {
-    // TODO: Remove once traits can have const fns (https://github.com/rust-lang/rfcs/pull/2632).
-    /// `const` implementation of `core::convert::Into<NtStatus>`.
-    #[cfg_attr(not(debug_assertions), inline(always))]
-    pub const fn into(self) -> NtStatus {
-        unsafe { NtStatus(core::num::NonZeroU32::new_unchecked(self as u32)) }
-    }
-}
-
 /// Official documentation: [System Error Codes](https://docs.microsoft.com/en-us/windows/win32/debug/system-error-codes).
 ///
 /// The value `ERROR_SUCCESS = 0` is encoded through the value `None` of the type
@@ -1861,6 +1895,19 @@ impl Status {
     #[cfg_attr(not(debug_assertions), inline(always))]
     pub(crate) fn last() -> Option<Self> {
         unsafe { crate::dll::kernel32::GetLastError() }
+    }
+}
+
+impl core::convert::From<StatusValue> for Status {
+    fn from(value: StatusValue) -> Self {
+        unsafe { Status(core::num::NonZeroU32::new_unchecked(value as u32)) }
+    }
+}
+
+impl core::convert::Into<u32> for Status {
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    fn into(self) -> u32 {
+        self.0.get()
     }
 }
 
@@ -4623,13 +4670,4 @@ pub enum StatusValue {
     StateSettingNameSizeLimitExceeded = 15817,
     StateContainerNameSizeLimitExceeded = 15818,
     ApiUnavailable = 15841
-}
-
-impl StatusValue {
-    // TODO: Remove once traits can have const fns (https://github.com/rust-lang/rfcs/pull/2632).
-    /// `const` implementation of `core::convert::Into<Status>`.
-    #[cfg_attr(not(debug_assertions), inline(always))]
-    pub const fn into(self) -> Status {
-        unsafe { Status(core::num::NonZeroU32::new_unchecked(self as u32)) }
-    }
 }

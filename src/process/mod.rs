@@ -10,7 +10,7 @@ use alloc::vec::Vec;
 ///
 /// Unofficial documentation: [Process Hacker - ntpsapi.h](https://github.com/processhacker/processhacker/blob/master/phnt/include/ntpsapi.h).
 #[bitfield::bitfield(32)]
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Display, Eq, PartialEq)]
 pub struct AccessModes {
     pub mode: AccessMode,
     pub standard: crate::object::AccessMode
@@ -509,12 +509,14 @@ impl Process {
     /// Returns basic information about the specified process.
     #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn information(&self) -> Result<info::Basic, crate::error::Error> {
-        #[cfg(not(any(winapi = "native", winapi = "syscall")))]
-        { self.information_kernel32().map_err(|e| crate::error::Error::Status(e)) }
-        #[cfg(winapi = "native")]
-        { self.information_ntdll().map_err(|e| crate::error::Error::NtStatus(e)) }
-        #[cfg(winapi = "syscall")]
-        { self.information_syscall().map_err(|e| crate::error::Error::NtStatus(e)) }
+        {
+			#[cfg(not(any(winapi = "native", winapi = "syscall")))]
+			{ self.information_kernel32() }
+			#[cfg(winapi = "native")]
+			{ self.information_ntdll() }
+			#[cfg(winapi = "syscall")]
+			{ self.information_syscall() }
+		}.map_err(|e| e.into())
     }
 
     /// Official documentation: [PROCESS_BASIC_INFORMATION struct](https://docs.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationprocess#process_basic_information).
@@ -573,12 +575,14 @@ impl Process {
     /// Returns an iterator over all currently running processes.
     #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn iter() -> Result<RuntimeSnapshot, crate::error::Error> {
-        #[cfg(not(any(winapi = "native", winapi = "syscall")))]
-        { Self::iter_kernel32().map_err(|e| crate::error::Error::Status(e)) }
-        #[cfg(winapi = "native")]
-        { Self::iter_ntdll().map_err(|e| crate::error::Error::NtStatus(e)) }
-        #[cfg(winapi = "syscall")]
-        { Self::iter_syscall().map_err(|e| crate::error::Error::NtStatus(e)) }
+		{
+			#[cfg(not(any(winapi = "native", winapi = "syscall")))]
+			{ Self::iter_kernel32() }
+			#[cfg(winapi = "native")]
+			{ Self::iter_ntdll() }
+			#[cfg(winapi = "syscall")]
+			{ Self::iter_syscall() }
+		}.map_err(|e| e.into())
     }
 
     /// Returns an iterator over all currently running processes.
@@ -653,23 +657,25 @@ impl Process {
     pub fn open(id: Id, access_modes: AccessModes, inherit_handles: bool)
         -> Result<Self, crate::error::Error>
     {
-        #[cfg(not(any(winapi = "native", winapi = "syscall")))]
-        { Self::open_kernel32(id, access_modes, inherit_handles).map_err(|e| crate::error::Error::Status(e)) }
-        #[cfg(any(winapi = "native", winapi = "syscall"))]
-        {
-            let client_id = ClientId { process: Some(id), thread: None };
-            let attributes = crate::object::Attributes::new(
-                None,
-                None,
-                crate::object::AttributeFlags::new(),
-                None,
-                None
-            );
-            #[cfg(winapi = "native")]
-            { Self::open_ntdll(&client_id, access_modes, &attributes).map_err(|e| crate::error::Error::NtStatus(e)) }
-            #[cfg(winapi = "syscall")]
-            { Self::open_syscall(&client_id, access_modes, &attributes).map_err(|e| crate::error::Error::NtStatus(e)) }
-        }
+		{
+			#[cfg(not(any(winapi = "native", winapi = "syscall")))]
+			{ Self::open_kernel32(id, access_modes, inherit_handles) }
+			#[cfg(any(winapi = "native", winapi = "syscall"))]
+			{
+				let client_id = ClientId { process: Some(id), thread: None };
+				let attributes = crate::object::Attributes::new(
+					None,
+					None,
+					crate::object::AttributeFlags::new(),
+					None,
+					None
+				);
+				#[cfg(winapi = "native")]
+				{ Self::open_ntdll(&client_id, access_modes, &attributes) }
+				#[cfg(winapi = "syscall")]
+				{ Self::open_syscall(&client_id, access_modes, &attributes) }
+			}
+		}.map_err(|e| e.into())
     }
 
     /// Tries to open an existing local process object.
@@ -728,12 +734,14 @@ impl Process {
     /// Tries to terminate the process.
     #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn terminate(&self, exit_code: u32) -> crate::error::ErrorResult {
-        #[cfg(not(any(winapi = "native", winapi = "syscall")))]
-        { self.terminate_kernel32(exit_code).map(|e| crate::error::Error::Status(e)) }
-        #[cfg(winapi = "native")]
-        { self.terminate_ntdll(exit_code).map(|e| crate::error::Error::NtStatus(e)) }
-        #[cfg(winapi = "syscall")]
-        { self.terminate_syscall(exit_code).map(|e| crate::error::Error::NtStatus(e)) }
+		{
+			#[cfg(not(any(winapi = "native", winapi = "syscall")))]
+			{ self.terminate_kernel32(exit_code) }
+			#[cfg(winapi = "native")]
+			{ self.terminate_ntdll(exit_code) }
+			#[cfg(winapi = "syscall")]
+			{ self.terminate_syscall(exit_code) }
+		}.map(|e| e.into())
     }
 
     /// Tries to terminate the process by calling `kernel32.TerminateProcess`.

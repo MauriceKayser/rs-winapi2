@@ -311,7 +311,7 @@ impl core::ops::Drop for Directory {
 
 /// Official documentation: [File Security and Access Rights](https://docs.microsoft.com/en-us/windows/win32/fileio/file-security-and-access-rights).
 #[bitfield::bitfield(32)]
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Display, Eq, PartialEq)]
 pub struct DirectoryAccessModes {
     pub mode: DirectoryAccessMode,
     pub standard: crate::object::AccessMode
@@ -453,12 +453,14 @@ impl File {
         &self,
         buffer: &'a mut [core::mem::MaybeUninit<u8>]
     ) -> Result<&'a mut [u8], crate::error::Error> {
-        #[cfg(not(any(winapi = "native", winapi = "syscall")))]
-        { self.read_kernel32(buffer, None).map_err(|e| crate::error::Error::Status(e)) }
-        #[cfg(winapi = "native")]
-        { self.read_ntdll(buffer, None, None).map_err(|e| crate::error::Error::NtStatus(e)) }
-        #[cfg(winapi = "syscall")]
-        { self.read_syscall(buffer, None, None).map_err(|e| crate::error::Error::NtStatus(e)) }
+		{
+			#[cfg(not(any(winapi = "native", winapi = "syscall")))]
+			{ self.read_kernel32(buffer, None) }
+			#[cfg(winapi = "native")]
+			{ self.read_ntdll(buffer, None, None) }
+			#[cfg(winapi = "syscall")]
+			{ self.read_syscall(buffer, None, None) }
+		}.map_err(|e| e.into())
     }
 
     // TODO: Enable this once array lengths support generic parameters (see [#43408](https://github.com/rust-lang/rust/issues/43408)).
@@ -638,25 +640,27 @@ impl File {
         buffer: &[u8],
         offset_and_event: Option<(&u64, Option<&crate::object::synchronization::Event>)>
     ) -> Result<usize, crate::error::Error> {
-        #[cfg(not(any(winapi = "native", winapi = "syscall")))]
         {
-            let mut overlapped = offset_and_event.map(
-                |(offset, event)| crate::io::Overlapped::new(*offset, event)
-            );
-            self.write_kernel32(buffer, overlapped.as_mut()).map_err(|e| crate::error::Error::Status(e))
-        }
-        #[cfg(winapi = "native")]
-        { self.write_ntdll(
-            buffer,
-            offset_and_event.map(|o| o.0),
-            offset_and_event.map(|e| e.1).flatten()
-        ).map_err(|e| crate::error::Error::NtStatus(e)) }
-        #[cfg(winapi = "syscall")]
-        { self.write_syscall(
-            buffer,
-            offset_and_event.map(|o| o.0),
-            offset_and_event.map(|e| e.1).flatten()
-        ).map_err(|e| crate::error::Error::NtStatus(e)) }
+			#[cfg(not(any(winapi = "native", winapi = "syscall")))]
+			{
+				let mut overlapped = offset_and_event.map(
+					|(offset, event)| crate::io::Overlapped::new(*offset, event)
+				);
+				self.write_kernel32(buffer, overlapped.as_mut())
+			}
+			#[cfg(winapi = "native")]
+			{ self.write_ntdll(
+				buffer,
+				offset_and_event.map(|o| o.0),
+				offset_and_event.map(|e| e.1).flatten()
+			) }
+			#[cfg(winapi = "syscall")]
+			{ self.write_syscall(
+				buffer,
+				offset_and_event.map(|o| o.0),
+				offset_and_event.map(|e| e.1).flatten()
+			) }
+		}.map_err(|e| e.into())
     }
 
     // TODO: Enable this once array lengths support generic parameters (see [#43408](https://github.com/rust-lang/rust/issues/43408)).
@@ -825,7 +829,7 @@ impl core::ops::Drop for File {
 
 /// Official documentation: [File Security and Access Rights](https://docs.microsoft.com/en-us/windows/win32/fileio/file-security-and-access-rights).
 #[bitfield::bitfield(32)]
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Display, Eq, PartialEq)]
 pub struct FileAccessModes {
     pub mode: FileAccessMode,
     pub standard: crate::object::AccessMode
