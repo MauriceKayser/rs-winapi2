@@ -4,7 +4,7 @@ use winapi2::io::file::*;
 
 fn main() {
     // Must be the done before any syscall related `winapi2` function is called.
-    winapi2::SyscallIds::initialize_10_1909();
+    winapi2::SyscallIds::initialize_statically();
 
     calc_header_message();
 

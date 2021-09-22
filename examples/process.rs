@@ -4,7 +4,7 @@ use winapi2::process::*;
 
 fn main() {
     // Must be the done before any syscall related `winapi2` function is called.
-    winapi2::SyscallIds::initialize_10_1909();
+    winapi2::SyscallIds::initialize_statically();
 
     winapi2::print!("1. ");
     print_self_info();
