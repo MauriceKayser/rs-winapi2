@@ -274,7 +274,7 @@ enum CoffHeaderMagic {
 
 /// The CPU type which the PE file was compiled for.
 #[allow(missing_docs)]
-#[derive(Clone, Copy, bitfield::FromPrimitive)]
+#[derive(Clone, Copy, Debug, bitfield::FromPrimitive)]
 #[repr(u16)]
 pub enum CoffMachine {
     Amd64 = 0x8664,
@@ -330,6 +330,15 @@ impl DosHeader {
                 self as *const DosHeader as *const _, image_size as usize
             ) }, mode)
         )
+    }
+}
+
+impl core::fmt::Debug for DosHeader {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        f.debug_struct(stringify!(DosHeader))
+            .field(stringify!(magic), &self.magic)
+            .field(stringify!(coff_fo), &self.coff_fo)
+            .finish()
     }
 }
 

@@ -184,7 +184,7 @@ impl core::fmt::Debug for Id {
 ///
 /// Unofficial documentation: [PROCESS_INFORMATION_CLASS enum](https://github.com/processhacker/processhacker/blob/master/phnt/include/ntpsapi.h).
 #[allow(unused)]
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone)]
 #[repr(u32)]
 pub(crate) enum Information {
     Basic,
@@ -309,8 +309,39 @@ pub struct LoaderData<'a> {
     pub initialization_order_next: Option<&'a mut LoaderDataEntry<'a>>,
     pub initialization_order_previous: Option<&'a mut LoaderDataEntry<'a>>,
     pub entry_in_progress: Option<&'a mut LoaderDataEntry<'a>>,
-    shutdown_in_progress: u8,
+    shutdown_in_progress_: u8,
     pub shutdown_thread_id: Option<thread::Id>
+}
+
+impl<'a> LoaderData<'a> {
+    #[allow(missing_docs)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn initialized(&self) -> bool {
+        self.initialized_ != 0
+    }
+
+    #[allow(missing_docs)]
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn shutdown_in_progress(&self) -> bool {
+        self.shutdown_in_progress_ != 0
+    }
+}
+
+impl<'a> core::fmt::Debug for LoaderData<'a> {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        f.debug_struct(stringify!(LoaderData))
+            .field(stringify!(initialized), &self.initialized())
+            .field(stringify!(load_order_next), &self.load_order_next)
+            .field(stringify!(load_order_previous), &self.load_order_previous)
+            .field(stringify!(memory_order_next), &self.memory_order_next)
+            .field(stringify!(memory_order_previous), &self.memory_order_previous)
+            .field(stringify!(initialization_order_next), &self.initialization_order_next)
+            .field(stringify!(initialization_order_previous), &self.initialization_order_previous)
+            .field(stringify!(entry_in_progress), &self.entry_in_progress)
+            .field(stringify!(shutdown_in_progress), &self.shutdown_in_progress())
+            .field(stringify!(shutdown_thread_id), &self.shutdown_thread_id)
+            .finish()
+    }
 }
 
 /// Official documentation: [struct LDR_DATA_TABLE_ENTRY](https://docs.microsoft.com/en-us/windows/win32/api/winternl/ns-winternl-peb_ldr_data).
@@ -341,6 +372,27 @@ pub struct LoaderDataEntry<'a> {
     image_entry_point_activation_context: *const u8,
     lock: *const u8
     // TODO: Add more fields.
+}
+
+impl<'a> core::fmt::Debug for LoaderDataEntry<'a> {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        f.debug_struct(stringify!(LoaderDataEntry))
+            .field(stringify!(load_order_next), &self.load_order_next)
+            .field(stringify!(load_order_previous), &self.load_order_previous)
+            .field(stringify!(memory_order_next), &self.memory_order_next)
+            .field(stringify!(memory_order_previous), &self.memory_order_previous)
+            .field(stringify!(initialization_order_next), &self.initialization_order_next)
+            .field(stringify!(initialization_order_previous), &self.initialization_order_previous)
+            .field(stringify!(image_base_address), &self.image_base_address)
+            .field(stringify!(image_entry_point), &self.image_entry_point)
+            .field(stringify!(image_virtual_size), &self.image_virtual_size)
+            .field(stringify!(image_path), &self.image_path.as_ref())
+            .field(stringify!(image_name), &self.image_name.as_ref())
+            .field(stringify!(flags), &self.flags)
+            .field(stringify!(load_count), &self.load_count)
+            .field(stringify!(tls_index), &self.tls_index)
+            .finish()
+    }
 }
 
 /// Unofficial documentation: [LDR_DATA_TABLE_ENTRY bit field](http://terminus.rewolf.pl/terminus/structures/ntdll/_LDR_DATA_TABLE_ENTRY_combined.html).
@@ -425,6 +477,35 @@ impl<'a> Parameters<'a> {
     #[cfg_attr(not(debug_assertions), inline(always))]
     pub const fn debug_flags(&self) -> bool {
         self.debug_flags_.as_bool()
+    }
+}
+
+impl<'a> core::fmt::Debug for Parameters<'a> {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        f.debug_struct(stringify!(Parameters))
+            .field(stringify!(flags), &self.flags)
+            .field(stringify!(debug_flags), &self.debug_flags())
+            .field(stringify!(console_flags), &self.console_flags)
+            .field(stringify!(current_directory_path), &self.current_directory_path.as_ref())
+            .field(stringify!(image_path), &self.image_path.as_ref())
+            .field(stringify!(image_name), &self.image_name.as_ref())
+            .field(stringify!(command_line), &self.command_line.as_ref())
+            .field(stringify!(starting_x), &self.starting_x)
+            .field(stringify!(starting_y), &self.starting_y)
+            .field(stringify!(count_x), &self.count_x)
+            .field(stringify!(count_y), &self.count_y)
+            .field(stringify!(count_chars_x), &self.count_chars_x)
+            .field(stringify!(count_chars_y), &self.count_chars_y)
+            .field(stringify!(fill_attribute), &self.fill_attribute)
+            .field(stringify!(usage_flags), &self.usage_flags)
+            .field(stringify!(window_visibility), &self.window_visibility)
+            .field(stringify!(window_title), &self.window_title.as_ref())
+            .field(stringify!(desktop_info), &self.desktop_info.as_ref())
+            .field(stringify!(shell_info), &self.shell_info.as_ref())
+            .field(stringify!(runtime_data), &self.runtime_data.as_ref())
+            .field(stringify!(process_group_id), &self.process_group_id)
+            .field(stringify!(loader_threads), &self.loader_threads)
+            .finish()
     }
 }
 

@@ -141,7 +141,7 @@ impl<'a, 'b> core::iter::Iterator for Iterator<'a, 'b> {
 }
 
 /// Stores the data which an export points at.
-#[cfg_attr(debug_assertions, derive(Debug, Eq, PartialEq))]
+#[derive(Debug, Eq, PartialEq)]
 pub enum Data<'a> {
     /// Data or a function in the PE file buffer.
     InModule(&'a [u8]),
@@ -154,7 +154,7 @@ pub enum Data<'a> {
 }
 
 /// Stores details about an export by a PE file.
-#[cfg_attr(debug_assertions, derive(Debug, Eq, PartialEq))]
+#[derive(Debug, Eq, PartialEq)]
 pub struct Named<'a> {
     /// The data which the export points at.
     pub data: Data<'a>,
