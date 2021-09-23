@@ -17,7 +17,7 @@ pub enum ExtendedAttributeFlag {
     NeedKnowledge = 7
 }
 
-// TODO: Implement creation.
+// TODO: Implement `ExtendedAttributesInformation` creation.
 /// Official documentation: [FILE_FULL_EA_INFORMATION struct](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_file_full_ea_information).
 #[allow(unused)]
 #[repr(C)]

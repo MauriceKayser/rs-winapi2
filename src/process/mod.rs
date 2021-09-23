@@ -1208,76 +1208,51 @@ mod tests {
             Some(crate::error::StatusValue::CallNotImplemented.into())
         );
 
-        // TODO: Implement.
+        // TODO: Implement test `process_kernel32`.
     }
 
     #[test]
-    fn process_ntdll() {
-        let me_all = Process::current();
-        let info_all = me_all.information_ntdll().unwrap();
-        let snapshot = Process::iter_ntdll().unwrap();
+    fn process_nt() {
+        const FUNCTIONS: &[(
+            fn(&Process) -> Result<info::Basic, crate::error::NtStatus>,
+            fn() -> Result<RuntimeSnapshot, crate::error::NtStatus>,
+            fn(&ClientId, AccessModes, &crate::object::Attributes) -> Result<Process, crate::error::NtStatus>)
+        ] = &[
+            (Process::information_ntdll, Process::iter_ntdll, Process::open_ntdll),
+            (Process::information_syscall, Process::iter_syscall, Process::open_syscall)
+        ];
 
-        let snap_me = snapshot.iter(true).filter(
-            |entry| entry.process.id == info_all.id
-        ).collect::<Vec<_>>();
+        for (information_nt, iter_nt, open_nt) in FUNCTIONS {
+            let me_all = Process::current();
+            let info_all = information_nt(&me_all).unwrap();
+            let snapshot = iter_nt().unwrap();
 
-        assert_eq!(snap_me.len(), 1);
+            let snap_me = snapshot.iter(true).filter(
+                |entry| entry.process.id == info_all.id
+            ).collect::<Vec<_>>();
 
-        let snap_me = snap_me.first().unwrap();
+            assert_eq!(snap_me.len(), 1);
 
-        assert!(snap_me.threads.len() > 0);
-        assert!(snap_me.process.image_name.as_ref().starts_with("winapi2-"));
-        assert!(snap_me.process.image_name.as_ref().ends_with(".exe"));
+            let snap_me = snap_me.first().unwrap();
 
-        let me_limited = Process::open_ntdll(
-            &ClientId { process: info_all.id, thread: None },
-            AccessModes::new().set_mode(AccessMode::QueryLimitedInformation, true),
-            &crate::object::Attributes::new(
-                None,
-                None,
-                crate::object::AttributeFlags::new(),
-                None,
-                None
-            )
-        ).unwrap();
-        let info_limited = me_limited.information_ntdll().unwrap();
+            assert!(snap_me.threads.len() > 0);
+            assert!(snap_me.process.image_name.as_ref().starts_with("winapi2-"));
+            assert!(snap_me.process.image_name.as_ref().ends_with(".exe"));
 
-        assert_eq!(info_all.id, info_limited.id);
-    }
+            let me_limited = open_nt(
+                &ClientId { process: info_all.id, thread: None },
+                AccessModes::new().set_mode(AccessMode::QueryLimitedInformation, true),
+                &crate::object::Attributes::new(
+                    None,
+                    None,
+                    crate::object::AttributeFlags::new(),
+                    None,
+                    None
+                )
+            ).unwrap();
+            let info_limited = information_nt(&me_limited).unwrap();
 
-    #[test]
-    fn process_syscall() {
-        crate::init_syscall_ids();
-
-        let me_all = Process::current();
-        let info_all = me_all.information_syscall().unwrap();
-        let snapshot = Process::iter_syscall().unwrap();
-
-        let snap_me = snapshot.iter(true).filter(
-            |entry| entry.process.id == info_all.id
-        ).collect::<Vec<_>>();
-
-        assert_eq!(snap_me.len(), 1);
-
-        let snap_me = snap_me.first().unwrap();
-
-        assert!(snap_me.threads.len() > 0);
-        assert!(snap_me.process.image_name.as_ref().starts_with("winapi2-"));
-        assert!(snap_me.process.image_name.as_ref().ends_with(".exe"));
-
-        let me_limited = Process::open_syscall(
-            &ClientId { process: info_all.id, thread: None },
-            AccessModes::new().set_mode(AccessMode::QueryLimitedInformation, true),
-            &crate::object::Attributes::new(
-                None,
-                None,
-                crate::object::AttributeFlags::new(),
-                None,
-                None
-            )
-        ).unwrap();
-        let info_limited = me_limited.information_syscall().unwrap();
-
-        assert_eq!(info_all.id, info_limited.id);
+            assert_eq!(info_all.id, info_limited.id);
+        }
     }
 }
