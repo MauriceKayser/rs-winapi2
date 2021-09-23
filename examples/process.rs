@@ -28,6 +28,20 @@ fn print_self_info() {
         information.id.unwrap(),
         information.inherited_from_id
     );
+
+    winapi2::println!("Memory blocks:");
+    for info in Process::current().iter_memory_information_syscall(0) {
+        winapi2::println!(
+            "\t0x{:016X} (0x{:016X}) : 0x{:016X} => {:?} ({:?}), {}, {}",
+            info.base_address,
+            info.allocation_base,
+            info.region_size,
+            info.protection.access(),
+            info.allocation_protection.access(),
+            info.states,
+            info.kinds
+        );
+    }
 }
 
 fn list_processes() {

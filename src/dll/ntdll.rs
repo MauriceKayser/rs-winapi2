@@ -69,6 +69,16 @@ extern "system" {
         return_size: Option<&mut u32>
     ) -> crate::error::NtStatusResult;
 
+    /// Official documentation [ntdll.NtQueryVirtualMemory](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntqueryvirtualmemory).
+    pub(crate) fn NtQueryVirtualMemory(
+        process: crate::object::Handle,
+        address: usize,
+        information: crate::process::memory::Information,
+        buffer: *mut u8,
+        buffer_size: usize,
+        written_size: *mut usize
+    ) -> crate::error::NtStatusResult;
+
     /// Official documentation [ntdll.NtReadFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntreadfile).
     pub(crate) fn NtReadFile(
         file: crate::object::Handle,

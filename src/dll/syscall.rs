@@ -10,6 +10,7 @@ pub struct Ids {
     pub query_information_file: u16,
     pub query_information_process: u16,
     pub query_system_information: u16,
+    pub query_virtual_memory: u16,
     pub read_file: u16,
     pub terminate_process: u16,
     pub write_file: u16
@@ -28,7 +29,7 @@ impl Ids {
     pub fn initialize_statically() -> bool {
         const WINDOWS_VERSION_MIN: crate::system::ReleaseVersion = crate::system::ReleaseVersion::Eight;
         const WINDOWS_VERSION_MAX: crate::system::ReleaseVersion = crate::system::ReleaseVersion::Ten21H1;
-        const SYSCALL_APIS: usize = 10;
+        const SYSCALL_APIS: usize = 11;
         const SYSCALL_VERSIONS: usize = WINDOWS_VERSION_MAX as usize - WINDOWS_VERSION_MIN as usize + 1;
 
         #[cfg(target_arch = "x86")]
@@ -42,6 +43,7 @@ impl Ids {
             /* NtQueryInformationFile */    [ 0x00B3, 0x00B6, 0x00B8, 0x00B8, 0x00BA, 0x00BB, 0x00BC, 0x00BC, 0x00BC, 0x00BC, 0x00BC, 0x00BC, 0x00BC, 0x00BC ],
             /* NtQueryInformationProcess */ [ 0x00B0, 0x00B3, 0x00B5, 0x00B5, 0x00B7, 0x00B8, 0x00B9, 0x00B9, 0x00B9, 0x00B9, 0x00B9, 0x00B9, 0x00B9, 0x00B9 ],
             /* NtQuerySystemInformation */  [ 0x0095, 0x0098, 0x009A, 0x009A, 0x009B, 0x009C, 0x009D, 0x009D, 0x009D, 0x009D, 0x009D, 0x009D, 0x009D, 0x009D ],
+            /* NtQueryVirtualMemory */      [ 0x008F, 0x0092, 0x0094, 0x0094, 0x0095, 0x0096, 0x0097, 0x0097, 0x0097, 0x0097, 0x0097, 0x0097, 0x0097, 0x0097 ],
             /* NtReadFile */                [ 0x0087, 0x008A, 0x008C, 0x008C, 0x008D, 0x008D, 0x008E, 0x008E, 0x008E, 0x008E, 0x008E, 0x008E, 0x008E, 0x008E ],
             /* NtTerminateProcess */        [ 0x0023, 0x0023, 0x0024, 0x0024, 0x0024, 0x0024, 0x0024, 0x0024, 0x0024, 0x0024, 0x0024, 0x0024, 0x0024, 0x0024 ],
             /* NtWriteFile */               [ 0x0005, 0x0006, 0x0007, 0x0007, 0x0007, 0x0007, 0x0007, 0x0007, 0x0007, 0x0007, 0x0007, 0x0007, 0x0007, 0x0007 ],
@@ -57,6 +59,7 @@ impl Ids {
             /* NtQueryInformationFile */    [ 0x000F, 0x0010, 0x0011, 0x0011, 0x0011, 0x0011, 0x0011, 0x0011, 0x0011, 0x0011, 0x0011, 0x0011, 0x0011, 0x0011 ],
             /* NtQueryInformationProcess */ [ 0x0017, 0x0018, 0x0019, 0x0019, 0x0019, 0x0019, 0x0019, 0x0019, 0x0019, 0x0019, 0x0019, 0x0019, 0x0019, 0x0019 ],
             /* NtQuerySystemInformation */  [ 0x0034, 0x0035, 0x0036, 0x0036, 0x0036, 0x0036, 0x0036, 0x0036, 0x0036, 0x0036, 0x0036, 0x0036, 0x0036, 0x0036 ],
+            /* NtQueryVirtualMemory */      [ 0x0021, 0x0022, 0x0023, 0x0023, 0x0023, 0x0023, 0x0023, 0x0023, 0x0023, 0x0023, 0x0023, 0x0023, 0x0023, 0x0023 ],
             /* NtReadFile */                [ 0x0004, 0x0005, 0x0006, 0x0006, 0x0006, 0x0006, 0x0006, 0x0006, 0x0006, 0x0006, 0x0006, 0x0006, 0x0006, 0x0006 ],
             /* NtTerminateProcess */        [ 0x002A, 0x002B, 0x002C, 0x002C, 0x002C, 0x002C, 0x002C, 0x002C, 0x002C, 0x002C, 0x002C, 0x002C, 0x002C, 0x002C ],
             /* NtWriteFile */               [ 0x0006, 0x0007, 0x0008, 0x0008, 0x0008, 0x0008, 0x0008, 0x0008, 0x0008, 0x0008, 0x0008, 0x0008, 0x0008, 0x0008 ],
@@ -76,6 +79,7 @@ impl Ids {
                         query_information_file: SYSCALL_IDS[api_index.next().unwrap_unchecked()][version_index],
                         query_information_process: SYSCALL_IDS[api_index.next().unwrap_unchecked()][version_index],
                         query_system_information: SYSCALL_IDS[api_index.next().unwrap_unchecked()][version_index],
+                        query_virtual_memory: SYSCALL_IDS[api_index.next().unwrap_unchecked()][version_index],
                         read_file: SYSCALL_IDS[api_index.next().unwrap_unchecked()][version_index],
                         terminate_process: SYSCALL_IDS[api_index.next().unwrap_unchecked()][version_index],
                         write_file: SYSCALL_IDS[api_index.next().unwrap_unchecked()][version_index]
@@ -102,6 +106,7 @@ impl Ids {
                 query_information_file: 0x97,
                 query_information_process: 0x9A,
                 query_system_information: 0xAD,
+                query_virtual_memory: 0xB2,
                 read_file: 0xB7,
                 terminate_process: 0x101,
                 write_file: 0x112
@@ -117,6 +122,7 @@ impl Ids {
                 query_information_file: 0xE,
                 query_information_process: 0x16,
                 query_system_information: 0x33,
+                query_virtual_memory: 0x20,
                 read_file: 0x3,
                 terminate_process: 0x29,
                 write_file: 0x5
@@ -137,6 +143,7 @@ impl Ids {
                 query_information_file: 0x9E,
                 query_information_process: 0xA1,
                 query_system_information: 0xB5,
+                query_virtual_memory: 0xBA,
                 read_file: 0xBF,
                 terminate_process: 0x10A,
                 write_file: 0x11C
@@ -152,6 +159,7 @@ impl Ids {
                 query_information_file: 0xE,
                 query_information_process: 0x16,
                 query_system_information: 0x33,
+                query_virtual_memory: 0x20,
                 read_file: 0x3,
                 terminate_process: 0x29,
                 write_file: 0x5
@@ -172,6 +180,7 @@ impl Ids {
                 query_information_file: 0xE1,
                 query_information_process: 0xE4,
                 query_system_information: 0xF8,
+                query_virtual_memory: 0xFD,
                 read_file: 0x102,
                 terminate_process: 0x152,
                 write_file: 0x167
@@ -187,6 +196,7 @@ impl Ids {
                 query_information_file: 0xE,
                 query_information_process: 0x16,
                 query_system_information: 0x33,
+                query_virtual_memory: 0x20,
                 read_file: 0x3,
                 terminate_process: 0x29,
                 write_file: 0x5
@@ -208,6 +218,7 @@ impl Ids {
                 query_information_file: 0xE1,
                 query_information_process: 0xE4,
                 query_system_information: 0xF8,
+                query_virtual_memory: 0xFD,
                 read_file: 0x102,
                 terminate_process: 0x14E,
                 write_file: 0x163
@@ -223,6 +234,7 @@ impl Ids {
                 query_information_file: 0xE,
                 query_information_process: 0x16,
                 query_system_information: 0x33,
+                query_virtual_memory: 0x20,
                 read_file: 0x3,
                 terminate_process: 0x29,
                 write_file: 0x5
@@ -243,6 +255,7 @@ impl Ids {
                 query_information_file: 0xE1,
                 query_information_process: 0xE4,
                 query_system_information: 0xF8,
+                query_virtual_memory: 0xFD,
                 read_file: 0x102,
                 terminate_process: 0x14E,
                 write_file: 0x163
@@ -258,6 +271,7 @@ impl Ids {
                 query_information_file: 0xE,
                 query_information_process: 0x16,
                 query_system_information: 0x33,
+                query_virtual_memory: 0x20,
                 read_file: 0x3,
                 terminate_process: 0x29,
                 write_file: 0x5
@@ -278,6 +292,7 @@ impl Ids {
                 query_information_file: 0xE7,
                 query_information_process: 0xEA,
                 query_system_information: 0x105,
+                query_virtual_memory: 0x10B,
                 read_file: 0x111,
                 terminate_process: 0x172,
                 write_file: 0x18C
@@ -293,6 +308,7 @@ impl Ids {
                 query_information_file: 0xE,
                 query_information_process: 0x16,
                 query_system_information: 0x33,
+                query_virtual_memory: 0x20,
                 read_file: 0x3,
                 terminate_process: 0x29,
                 write_file: 0x5
@@ -315,6 +331,7 @@ impl Ids {
                 query_information_file: 0xF,
                 query_information_process: 0x17,
                 query_system_information: 0x34,
+                query_virtual_memory: 0x21,
                 read_file: 0x4,
                 terminate_process: 0x2A,
                 write_file: 0x6
@@ -337,6 +354,7 @@ impl Ids {
                 query_information_file: 0x10,
                 query_information_process: 0x18,
                 query_system_information: 0x35,
+                query_virtual_memory: 0x22,
                 read_file: 0x5,
                 terminate_process: 0x2B,
                 write_file: 0x7
@@ -556,6 +574,29 @@ pub(crate) unsafe fn NtQuerySystemInformation(
     let return_size = *(&return_size as *const _ as *const usize);
 
     syscall!(query_system_information, information, buffer, buffer_size, return_size)
+}
+
+/// Official documentation [ntdll.NtQueryVirtualMemory](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntqueryvirtualmemory).
+#[allow(non_snake_case)]
+#[cfg_attr(not(debug_assertions), inline(always))]
+pub(crate) unsafe fn NtQueryVirtualMemory(
+    process: crate::object::Handle,
+    address: usize,
+    information: crate::process::memory::Information,
+    buffer: *mut u8,
+    buffer_size: usize,
+    written_size: *mut usize
+) -> crate::error::NtStatusResult {
+    let process = *(&process as *const _ as *const usize);
+    let information = information as usize;
+
+    let stack = &[
+        0usize, 0, 0, 0, 0,
+        buffer_size,
+        written_size as usize
+    ];
+
+    syscall!(query_virtual_memory, process, address, information, buffer, stack: stack)
 }
 
 /// Official documentation [ntdll.NtReadFile](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntreadfile).

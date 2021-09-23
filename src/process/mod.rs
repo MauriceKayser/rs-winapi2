@@ -2,6 +2,7 @@
 
 pub mod environment;
 pub mod info;
+pub mod memory;
 pub mod thread;
 
 use alloc::vec::Vec;

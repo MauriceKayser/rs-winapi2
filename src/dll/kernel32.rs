@@ -100,6 +100,15 @@ extern "system" {
         exit_code: u32
     ) -> crate::types::Boolean;
 
+    /// Official documentation: [kernel32.VirtualQueryEx](https://docs.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualqueryex).
+    pub(crate) fn VirtualQueryEx(
+        process: crate::object::Handle,
+        address: usize,
+        // crate::process::memory::info::Basic<T>
+        buffer: *mut u8,
+        buffer_size: usize
+    ) -> usize;
+
     /// Official documentation: [kernel32.WriteConsoleW](https://docs.microsoft.com/en-us/windows/console/writeconsole).
     pub(crate) fn WriteConsoleW(
         output_handle: crate::object::Handle,

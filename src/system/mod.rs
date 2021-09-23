@@ -278,7 +278,7 @@ impl core::fmt::Display for ReleaseVersion {
 ///
 /// Unofficial documentation: [KUSER_SHARED_DATA struct](https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/ntexapi_x/kuser_shared_data/index.htm).
 #[repr(C)]
-struct SharedData {
+pub(crate) struct SharedData {
     tick_count_low_deprecated: u32,
     tick_count_multiplier: u32,
     time_interrupt: Time,
