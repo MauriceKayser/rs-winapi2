@@ -833,23 +833,23 @@ impl Process {
 
         // Call the API and calculate the needed buffer size. Repeat until the buffer is big enough.
         loop {
-            let mut return_size = 0;
+            let mut return_size = core::mem::MaybeUninit::uninit();
 
-            match unsafe { crate::dll::ntdll::NtQuerySystemInformation(
+            unsafe { match crate::dll::ntdll::NtQuerySystemInformation(
                 crate::system::Information::Process,
                 buffer.as_ptr(),
                 buffer.capacity() as u32,
-                Some(&mut return_size)
-            ) } {
+                return_size.as_mut_ptr()
+            ) {
                 Some(e) if e == crate::error::NtStatusValue::InfoLengthMismatch.into() => {
-                    buffer.reserve(return_size as usize - buffer.capacity());
+                    buffer.reserve(return_size.assume_init() as usize - buffer.capacity());
                 },
                 Some(e) => return Err(e),
                 None => {
-                    unsafe { buffer.set_len(return_size as usize); }
+                    buffer.set_len(return_size.assume_init() as usize);
                     break;
                 }
-            }
+            } }
         }
 
         Ok(RuntimeSnapshot { buffer })
@@ -862,23 +862,23 @@ impl Process {
 
         // Call the API and calculate the needed buffer size. Repeat until the buffer is big enough.
         loop {
-            let mut return_size = 0;
+            let mut return_size = core::mem::MaybeUninit::uninit();
 
-            match unsafe { crate::dll::syscall::NtQuerySystemInformation(
+            unsafe { match crate::dll::syscall::NtQuerySystemInformation(
                 crate::system::Information::Process,
                 buffer.as_ptr(),
                 buffer.capacity() as u32,
-                Some(&mut return_size)
-            ) } {
+                return_size.as_mut_ptr()
+            ) {
                 Some(e) if e == crate::error::NtStatusValue::InfoLengthMismatch.into() => {
-                    buffer.reserve(return_size as usize - buffer.capacity());
+                    buffer.reserve(return_size.assume_init() as usize - buffer.capacity());
                 },
                 Some(e) => return Err(e),
                 None => {
-                    unsafe { buffer.set_len(return_size as usize); }
+                    buffer.set_len(return_size.assume_init() as usize);
                     break;
                 }
-            }
+            } }
         }
 
         Ok(RuntimeSnapshot { buffer })

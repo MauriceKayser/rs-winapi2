@@ -568,10 +568,9 @@ pub(crate) unsafe fn NtQuerySystemInformation(
     information: crate::system::Information,
     buffer: *const u8,
     buffer_size: u32,
-    return_size: Option<&mut u32>
+    return_size: *mut u32
 ) -> crate::error::NtStatusResult {
     let information = information as usize;
-    let return_size = *(&return_size as *const _ as *const usize);
 
     syscall!(query_system_information, information, buffer, buffer_size, return_size)
 }
