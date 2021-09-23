@@ -33,55 +33,30 @@ impl CommandLine {
             .and_then(|parameters| Some(Self { buffer: parameters.command_line.buffer }))
     }
 
-    /// Returns an iterator over the arguments in the command line string.
+    /// Returns a split variant of the command line string.
     #[cfg_attr(not(debug_assertions), inline(always))]
-    pub fn iter(
-        &self,
-        exclude_zero_terminator: bool
-    ) -> Result<CommandLineIterator, crate::error::Status> {
-        CommandLineIterator::new(self, exclude_zero_terminator)
-    }
-}
-
-/// An iterator over the arguments in the command line string.
-pub struct CommandLineIterator<'a> {
-    buffer: &'a [*const WideChar],
-    index: usize,
-    exclude_zero_terminator: bool
-}
-
-impl<'a> CommandLineIterator<'a> {
-    #[cfg_attr(not(debug_assertions), inline(always))]
-    fn new(
-        command_line: &CommandLine,
-        exclude_zero_terminator: bool
-    ) -> Result<Self, crate::error::Status> {
+    pub fn split<'a>(&self) -> Result<CommandLineSplit<'a>, crate::error::Status> {
         unsafe {
             let mut count = core::mem::MaybeUninit::uninit();
             let arguments = crate::dll::shell32::CommandLineToArgvW(
-                command_line.buffer, count.as_mut_ptr()
+                self.buffer, count.as_mut_ptr()
             );
             if arguments as usize == 0 || count.assume_init() < 0 {
                 return Err(crate::error::Status::last().unwrap());
             }
 
-            Ok(Self {
-                buffer: core::slice::from_raw_parts(arguments, count.assume_init() as usize),
-                index: 0,
-                exclude_zero_terminator
-            })
+            Ok(CommandLineSplit { buffer: core::slice::from_raw_parts(
+                arguments, count.assume_init() as usize
+            ) })
         }
     }
 }
 
-impl<'a> core::ops::Drop for CommandLineIterator<'a> {
-    #[cfg_attr(not(debug_assertions), inline(always))]
-    fn drop(&mut self) {
-        let handle = unsafe {
-            crate::dll::kernel32::LocalFree(self.buffer.as_ptr() as _)
-        };
-        debug_assert_eq!(handle as usize, 0);
-    }
+/// An iterator over the arguments in the command line string.
+pub struct CommandLineIterator<'a> {
+    split: &'a CommandLineSplit<'a>,
+    index: usize,
+    exclude_zero_terminator: bool
 }
 
 impl<'a> core::iter::Iterator for CommandLineIterator<'a> {
@@ -89,12 +64,35 @@ impl<'a> core::iter::Iterator for CommandLineIterator<'a> {
 
     #[cfg_attr(not(debug_assertions), inline(always))]
     fn next(&mut self) -> Option<Self::Item> {
-        let parameter_ptr = self.buffer.get(self.index)?.clone();
+        let parameter_ptr = self.split.buffer.get(self.index)?.clone();
         self.index += 1;
 
         Some(unsafe { crate::string::Str::from_terminated(
             parameter_ptr, None, self.exclude_zero_terminator
         ) })
+    }
+}
+
+/// Stores the split command line buffers.
+pub struct CommandLineSplit<'a> {
+    buffer: &'a [*const WideChar]
+}
+
+impl<'a> CommandLineSplit<'a> {
+    /// Returns an iterator over the arguments in the command line string.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn iter(&'a self, exclude_zero_terminator: bool) -> CommandLineIterator<'a> {
+        CommandLineIterator { split: self, index: 0, exclude_zero_terminator }
+    }
+}
+
+impl<'a> core::ops::Drop for CommandLineSplit<'a> {
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    fn drop(&mut self) {
+        let handle = unsafe {
+            crate::dll::kernel32::LocalFree(self.buffer.as_ptr() as _)
+        };
+        debug_assert_eq!(handle as usize, 0);
     }
 }
 
@@ -116,9 +114,8 @@ mod tests {
     #[test]
     fn command_line_iterator() {
         // An empty input string results in the full program path.
-        let command_line = CommandLine { buffer: [0].as_ptr() };
-        let arguments: Vec<&crate::string::Str> =
-            command_line.iter(true).unwrap().collect();
+        let command_line = CommandLine { buffer: [0].as_ptr() }.split().unwrap();
+        let arguments: Vec<&crate::string::Str> = command_line.iter(true).collect();
 
         assert_eq!(arguments.len(), 1);
         let argument = ToString::to_string(arguments.first().unwrap());
@@ -171,11 +168,11 @@ mod tests {
             let expected_terminated: Vec<&crate::string::Str> = expected_terminated.iter()
                 .map(|s| s.as_ref()).collect();
 
-            let command_line = CommandLine { buffer: input_terminated.as_ptr() };
+            let command_line = CommandLine { buffer: input_terminated.as_ptr() }.split().unwrap();
             let arguments: Vec<&crate::string::Str> =
-                command_line.iter(true).unwrap().collect();
+                command_line.iter(true).collect();
             let arguments_terminated: Vec<&crate::string::Str> =
-                command_line.iter(false).unwrap().collect();
+                command_line.iter(false).collect();
 
             assert_eq!(&arguments.as_slice(), expected);
             assert_eq!(arguments_terminated, expected_terminated);
