@@ -83,7 +83,7 @@ impl core::convert::Into<u32> for NtStatus {
 
 impl core::fmt::Debug for NtStatus {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-        match core::convert::TryInto::<NtStatusValue>::try_into(self.0.get()) {
+        match NtStatusValue::try_from(self.0.get()) {
             Ok(v) => f.write_str(&alloc::format!("{:?}", v)),
             Err(e) => f.write_str(&alloc::format!("{}", e))
         }
@@ -1913,7 +1913,7 @@ impl core::convert::Into<u32> for Status {
 
 impl core::fmt::Debug for Status {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-        match core::convert::TryInto::<StatusValue>::try_into(self.0.get()) {
+        match StatusValue::try_from(self.0.get()) {
             Ok(v) => f.write_str(&alloc::format!("{:?}", v)),
             Err(e) => f.write_str(&alloc::format!("{}", e))
         }

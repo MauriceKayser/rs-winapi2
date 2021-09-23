@@ -1191,12 +1191,10 @@ mod tests {
                 // ntdll.dll
                 .load_order_next.as_ref().unwrap();
 
-        let virtual_size: usize = core::convert::TryInto::try_into(ldr_entry.image_virtual_size).unwrap();
-
-        assert_eq!(module.as_pe_file_kernel32().image_base.len(), virtual_size);
-        assert_eq!(module.as_pe_file_ntdll().image_base.len(), virtual_size);
-        assert_eq!(module.as_pe_file_syscall().image_base.len(), virtual_size);
-        assert_eq!(module.as_pe_file().image_base.len(), virtual_size);
+        assert_eq!(module.as_pe_file_kernel32().image_base.len(), ldr_entry.image_virtual_size as usize);
+        assert_eq!(module.as_pe_file_ntdll().image_base.len(), ldr_entry.image_virtual_size as usize);
+        assert_eq!(module.as_pe_file_syscall().image_base.len(), ldr_entry.image_virtual_size as usize);
+        assert_eq!(module.as_pe_file().image_base.len(), ldr_entry.image_virtual_size as usize);
     }
 
     #[test]

@@ -4,7 +4,6 @@
 //!
 //! Use the `PeFile` type to get information about a PE file.
 
-use core::convert::TryFrom;
 use core::mem::size_of;
 
 pub mod base_relocation;

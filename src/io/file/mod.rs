@@ -965,10 +965,8 @@ impl IoStatusBlock {
     /// operation.
     #[cfg_attr(not(debug_assertions), inline(always))]
     fn io_status(&self) -> Result<IoStatus, *const u8> {
-        if self.information as usize > core::u32::MAX as usize { return Err(self.information); }
-        core::convert::TryInto::<IoStatus>::try_into(self.information as usize as u32).map_err(
-            |_| self.information
-        )
+        if self.information as usize > u32::MAX as usize { return Err(self.information); }
+        IoStatus::try_from(self.information as u32).map_err(|_| self.information)
     }
 }
 

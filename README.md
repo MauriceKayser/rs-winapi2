@@ -73,3 +73,5 @@ fn main() {
 system, and 64 bit applications on a 64 bit Windows system. Executing a system call in a **32
 bit application on a 64 bit Windows system** ("WOW64") **will not work** and potentially crash
 the application if no exception handlers are set up!
+
+This project assumes `target_pointer_width >= 32`.

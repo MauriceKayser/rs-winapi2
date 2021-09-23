@@ -18,10 +18,10 @@ impl Basic {
     #[allow(missing_docs)]
     #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn base_priority(&self) -> Result<super::thread::PriorityLevel, isize> {
-        if self.base_priority_ < core::i32::MIN as isize || self.base_priority_ > core::i32::MAX as isize {
+        if self.base_priority_ < i32::MIN as isize || self.base_priority_ > i32::MAX as isize {
             return Err(self.base_priority_);
         }
-        core::convert::TryFrom::try_from(self.base_priority_ as i32).map_err(|_| self.base_priority_)
+        TryFrom::try_from(self.base_priority_ as i32).map_err(|_| self.base_priority_)
     }
 }
 

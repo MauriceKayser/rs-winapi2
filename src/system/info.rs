@@ -46,7 +46,7 @@ impl<'a> Process<'a> {
     #[allow(missing_docs)]
     #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn base_priority(&self) -> Result<crate::process::thread::PriorityLevel, i32> {
-        core::convert::TryFrom::try_from(self.base_priority_)
+        TryFrom::try_from(self.base_priority_)
     }
 }
 
@@ -110,25 +110,25 @@ impl Thread {
     #[allow(missing_docs)]
     #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn base_priority(&self) -> Result<crate::process::thread::PriorityLevel, i32> {
-        core::convert::TryFrom::try_from(self.base_priority_)
+        TryFrom::try_from(self.base_priority_)
     }
 
     #[allow(missing_docs)]
     #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn priority(&self) -> Result<crate::process::thread::PriorityLevel, i32> {
-        core::convert::TryFrom::try_from(self.priority_)
+        TryFrom::try_from(self.priority_)
     }
 
     #[allow(missing_docs)]
     #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn state(&self) -> Result<crate::process::thread::State, u32> {
-        core::convert::TryFrom::try_from(self.state_)
+        TryFrom::try_from(self.state_)
     }
 
     #[allow(missing_docs)]
     #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn wait_reason(&self) -> Result<crate::process::thread::WaitReason, u32> {
-        core::convert::TryFrom::try_from(self.wait_reason_)
+        TryFrom::try_from(self.wait_reason_)
     }
 }
 

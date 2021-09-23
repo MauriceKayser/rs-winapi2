@@ -146,15 +146,10 @@ impl<'a, E> core::iter::Iterator for BasicIterator<'a, E> {
 
         match (self.func)(self.process, self.address) {
             Ok(result) => {
-                let base_address = core::convert::TryInto::<usize>::try_into(result.base_address);
-                let region_size = core::convert::TryInto::<usize>::try_into(result.region_size);
-
                 // Calculate the next address to query.
-                if let (Ok(base_address), Ok(region_size)) = (base_address, region_size) {
-                    if let Some(address) = base_address.checked_add(region_size) {
-                        self.address = address;
-                        return Some(result);
-                    }
+                if let Some(address) = result.base_address.checked_add(result.region_size) {
+                    self.address = address;
+                    return Some(result);
                 }
 
                 self.is_done = true;
