@@ -431,6 +431,158 @@ pub enum LoaderDataEntryFlag {
     CompatDatabaseProcessed = 31
 }
 
+/// Official documentation: [LoadLibraryEx dwFlags parameter](https://docs.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-loadlibraryexw).
+#[bitfield::bitfield(32)]
+#[derive(Copy, Clone, Debug, Display, Eq, PartialEq)]
+pub struct LoadModuleFlags(pub LoadModuleFlag);
+
+/// Official documentation: [LoadLibraryEx dwFlags parameter](https://docs.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-loadlibraryexw).
+#[allow(missing_docs)]
+#[derive(Copy, Clone, Debug, bitfield::Flags)]
+#[repr(u8)]
+pub enum LoadModuleFlag {
+    DoNotResolveDllReferences,
+    AsDataFile,
+    WithAlteredSearchPath = 3,
+    IgnoreCodeAuthzLevel,
+    AsImageResource,
+    AsDataFileExclusive,
+    RequireSignedTarget,
+    SearchDllLoadDir,
+    SearchApplicationDir,
+    SearchUserDirs,
+    SearchSystem32,
+    SearchDefaultDirs,
+    SafeCurrentDirs
+}
+
+/// Represents a PE module loaded into memory.
+#[repr(transparent)]
+pub struct Module(core::num::NonZeroUsize);
+
+impl Module {
+    /// Cancels out the lower two bits which can be used to store information.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    fn address(&self) -> usize {
+        self.0.get() & !0b11
+    }
+
+    /// Returns the module as reference to a `crate::pe::DosHeader` structure.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn as_dos_header(&self) -> &crate::pe::DosHeader {
+        unsafe { &*(self.address() as *const _) }
+    }
+
+    /// Returns the module as a `crate::pe::PeFile` parser structure.
+    ///
+    /// The parameter `virtual_size` sets the boundaries for the parser.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn as_pe_file_with_size(&self, virtual_size: usize) -> crate::pe::PeFile {
+        crate::pe::PeFile::new(
+            unsafe { core::slice::from_raw_parts(
+                self.address() as *const _,
+                virtual_size
+            ) },
+            if self.is_data_file() { unimplemented!() } // TODO: Implement `File` parsing mode.
+            else { crate::pe::ParsingMode::Virtual }
+        )
+    }
+
+    /// Returns the module as a `crate::pe::PeFile` parser structure.
+    ///
+    /// If the virtual size of the PE file is know, prefer using `as_pe_file_with_size` instead.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn as_pe_file(&self) -> crate::pe::PeFile {
+        #[cfg(not(any(winapi = "native", winapi = "syscall")))]
+        { self.as_pe_file_kernel32() }
+        #[cfg(winapi = "native")]
+        { self.as_pe_file_ntdll() }
+        #[cfg(winapi = "syscall")]
+        { self.as_pe_file_syscall() }
+    }
+
+    /// Returns the module as a `crate::pe::PeFile` parser structure.
+    ///
+    /// If the virtual size of the PE file is know, prefer using `as_pe_file_with_size` instead.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn as_pe_file_kernel32(&self) -> crate::pe::PeFile {
+        let base = self.address();
+        let mut size = 0usize;
+
+        for memory in Process::current().iter_memory_information_kernel32(base) {
+            if memory.allocation_base == base {
+                size = unsafe { size.unchecked_add(memory.region_size) };
+            } else { break; }
+        }
+
+        self.as_pe_file_with_size(size)
+    }
+
+    /// Returns the module as a `crate::pe::PeFile` parser structure.
+    ///
+    /// If the virtual size of the PE file is know, prefer using `as_pe_file_with_size` instead.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn as_pe_file_ntdll(&self) -> crate::pe::PeFile {
+        let base = self.address();
+        let mut size = 0usize;
+
+        for memory in Process::current().iter_memory_information_ntdll(base) {
+            if memory.allocation_base == base {
+                size = unsafe { size.unchecked_add(memory.region_size) };
+            } else { break; }
+        }
+
+        self.as_pe_file_with_size(size)
+    }
+
+    /// Returns the module as a `crate::pe::PeFile` parser structure.
+    ///
+    /// If the virtual size of the PE file is know, prefer using `as_pe_file_with_size` instead.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn as_pe_file_syscall(&self) -> crate::pe::PeFile {
+        let base = self.address();
+        let mut size = 0usize;
+
+        for memory in Process::current().iter_memory_information_syscall(base) {
+            if memory.allocation_base == base {
+                size = unsafe { size.unchecked_add(memory.region_size) };
+            } else { break; }
+        }
+
+        self.as_pe_file_with_size(size)
+    }
+
+    /// Returns `true` is the module was loaded with the `AsDataFile` or `AsDataFileExclusive` flag.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub const fn is_data_file(&self) -> bool {
+        self.0.get() & (1 << 0) != 0
+    }
+
+    /// Returns `true` is the module was loaded with the `AsImageResource` flag.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub const fn is_image_mapping(&self) -> bool {
+        self.0.get() & (1 << 1) != 0
+    }
+
+    /// Returns the address of a module, after it is loaded into the current process.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn load_kernel32(name: &crate::string::Str, flags: LoadModuleFlags) -> Option<Self> {
+        unsafe { crate::dll::kernel32::LoadLibraryExW(name.as_ptr(), 0, flags) }
+    }
+
+    // TODO: Implement `load_ntdll` & `load_syscall`.
+}
+
+impl core::ops::Drop for Module {
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    fn drop(&mut self) {
+        let closed = unsafe { crate::dll::kernel32::FreeLibrary(
+            Self(core::num::NonZeroUsize::new_unchecked(self.address()))
+        ) };
+        debug_assert!(closed.as_bool());
+    }
+}
+
 /// Official documentation: [RTL_USER_PROCESS_PARAMETERS struct](https://docs.microsoft.com/en-us/windows/win32/api/winternl/ns-winternl-rtl_user_process_parameters).
 ///
 /// Unofficial documentation: [RTL_USER_PROCESS_PARAMETERS struct](http://terminus.rewolf.pl/terminus/structures/ntdll/_RTL_USER_PROCESS_PARAMETERS_combined.html).
@@ -1020,6 +1172,31 @@ mod tests {
 
             assert_eq!(ntdll_name, "ntdll.dll");
         }
+    }
+
+    #[test]
+    fn module() {
+        crate::init_syscall_ids();
+
+        let ntdll = crate::String::from("C:\\Windows\\System32\\ntdll.dll\0");
+        let module = Module::load_kernel32(
+            ntdll.as_ref(), LoadModuleFlags::new()
+        ).unwrap();
+
+        let ldr_entry =
+            unsafe { EnvironmentBlock::current_from_block_teb() }.unwrap()
+                .loader_data.as_ref().unwrap()
+                // Current process image
+                .load_order_next.as_ref().unwrap()
+                // ntdll.dll
+                .load_order_next.as_ref().unwrap();
+
+        let virtual_size: usize = core::convert::TryInto::try_into(ldr_entry.image_virtual_size).unwrap();
+
+        assert_eq!(module.as_pe_file_kernel32().image_base.len(), virtual_size);
+        assert_eq!(module.as_pe_file_ntdll().image_base.len(), virtual_size);
+        assert_eq!(module.as_pe_file_syscall().image_base.len(), virtual_size);
+        assert_eq!(module.as_pe_file().image_base.len(), virtual_size);
     }
 
     #[test]

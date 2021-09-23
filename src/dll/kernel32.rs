@@ -31,6 +31,11 @@ extern "system" {
         template: Option<crate::object::Handle>
     ) -> crate::object::Handle;
 
+    /// https://docs.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-freelibrary
+    pub(crate) fn FreeLibrary(
+        module: crate::process::Module
+    ) -> crate::types::Boolean;
+
     /// Official documentation: [kernel32.GetCommandLineW](https://docs.microsoft.com/en-us/windows/win32/api/processenv/nf-processenv-getcommandlinew).
     pub(crate) fn GetCommandLineW() -> *const crate::string::WideChar;
 
@@ -72,6 +77,13 @@ extern "system" {
         flags: crate::heap::SystemHeapFlags,
         buffer: *mut u8
     ) -> crate::types::Boolean;
+
+    /// https://docs.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-loadlibraryexw
+    pub(crate) fn LoadLibraryExW(
+        path: *const crate::string::WideChar,
+        _: usize,
+        flags: crate::process::LoadModuleFlags
+    ) -> Option<crate::process::Module>;
 
     /// Official documentation: [kernel32.LocalFree](https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-localfree).
     pub(crate) fn LocalFree(

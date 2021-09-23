@@ -12,7 +12,7 @@ pub mod export;
 
 /// A parser for PE files.
 pub struct PeFile<'a> {
-    image_base: &'a [u8],
+    pub(crate) image_base: &'a [u8],
     mode: ParsingMode,
     image_machine_type: Option<CoffMachine>,
     size_after_optional_header: Option<u16>,
