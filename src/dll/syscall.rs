@@ -424,6 +424,12 @@ macro_rules! syscall {
     }};
 }
 
+// TODO: Add x86 assembly shell code variant and optionally handle WoW64.
+#[cfg(target_arch = "x86")]
+macro_rules! syscall {
+    ($($parameters:tt)*) => { Some(crate::error::NtStatusValue::NotImplemented.into()) }
+}
+
 /// Official documentation: [ntdll.NtClose](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntclose).
 #[allow(non_snake_case)]
 #[cfg(winapi = "syscall")]

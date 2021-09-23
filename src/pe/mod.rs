@@ -1,6 +1,6 @@
 //! All types for parsing a PE file.
 //!
-//! Based on: https://docs.microsoft.com/en-us/windows/win32/debug/pe-format
+//! Based on: <https://docs.microsoft.com/en-us/windows/win32/debug/pe-format>.
 //!
 //! Use the `PeFile` type to get information about a PE file.
 

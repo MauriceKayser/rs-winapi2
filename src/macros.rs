@@ -3,9 +3,12 @@
 /// **WARNING**: Using this on structs without `#[repr(C)]` or `#[repr(packed)]` might yield
 /// unexpected results!
 macro_rules! offset_of {
-    ($ty:ty, $field:ident) => {
-        &(*(0 as *const $ty)).$field as *const _ as usize
-    }
+    ($ty:ty, $field:ident) => {{
+        let instance = core::mem::MaybeUninit::<$ty>::uninit();
+        let instance_ptr = instance.as_ptr();
+        let field_ptr = core::ptr::addr_of!((*instance_ptr).$field);
+        (field_ptr as usize) - (instance_ptr as usize)
+    }}
 }
 
 #[cfg(test)]

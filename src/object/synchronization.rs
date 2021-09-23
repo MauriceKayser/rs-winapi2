@@ -36,6 +36,7 @@ pub enum CriticalSectionLockFlag {
 }
 
 /// Stores the necessary information to manipulate an event object.
+#[repr(transparent)]
 pub struct Event(pub(crate) crate::object::Handle);
 
 impl core::ops::Drop for Event {

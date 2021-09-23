@@ -329,6 +329,7 @@ impl SharedData {
     }
 
     #[allow(missing_docs, unused)]
+    #[cfg(target_pointer_width = "64")]
     #[cfg_attr(not(debug_assertions), inline(always))]
     pub(crate) fn get_kernel_mode_x64() -> &'static Self {
         unsafe { &*(0xFFFFF780_00000000 as *const Self) }

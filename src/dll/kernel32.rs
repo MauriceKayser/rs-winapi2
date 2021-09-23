@@ -3,6 +3,7 @@
 #[link(name = "kernel32", kind = "dylib")]
 extern "system" {
     /// Official documentation: [kernel32.CloseHandle](https://docs.microsoft.com/en-us/windows/win32/api/handleapi/nf-handleapi-closehandle).
+    #[cfg(not(any(winapi = "native", winapi = "syscall")))]
     pub(crate) fn CloseHandle(
         object: crate::object::Handle
     ) -> crate::types::Boolean;

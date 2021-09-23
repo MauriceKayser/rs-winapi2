@@ -747,7 +747,8 @@ impl Process {
 				let attributes = crate::object::Attributes::new(
 					None,
 					None,
-					crate::object::AttributeFlags::new(),
+					crate::object::AttributeFlags::new()
+                        .set(crate::object::AttributeFlag::Inherit, inherit_handles),
 					None,
 					None
 				);
@@ -975,11 +976,14 @@ mod tests {
     #[test]
     fn environment_block_current() {
         unsafe {
-            let from_base = EnvironmentBlock::current_from_segment_base_teb().unwrap();
             let from_block = EnvironmentBlock::current_from_block_teb().unwrap();
+            assert_ne!(from_block as *const _ as usize, 0);
 
-            assert_ne!(from_base as *const _ as usize, 0);
-            assert_eq!(from_base as *const _ as usize, from_block as *const _ as usize);
+            #[cfg(target_arch = "x86_64")]
+            {
+                let from_base = EnvironmentBlock::current_from_segment_base_teb().unwrap();
+                assert_eq!(from_base as *const _ as usize, from_block as *const _ as usize);
+            }
         }
     }
 

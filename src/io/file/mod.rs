@@ -1303,6 +1303,8 @@ mod tests {
 
     #[test]
     fn directory_create_kernel32_path() {
+        crate::init_syscall_ids();
+
         let paths = &[
             // Non-existent directory.
             (
@@ -1372,6 +1374,8 @@ mod tests {
 
     #[test]
     fn directory_create_kernel32_creation_disposition() {
+        crate::init_syscall_ids();
+
         let path = String::from("winapi2_directory_create_kernel32_creation_disposition\\\0");
         let path = path.as_ref();
 
@@ -1474,6 +1478,8 @@ mod tests {
 
     #[test]
     fn directory_create_kernel32_template() {
+        crate::init_syscall_ids();
+
         fn create(
             path: &Str,
             creation_disposition: CreationDispositionDirectoryKernel32,

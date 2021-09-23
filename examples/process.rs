@@ -36,8 +36,9 @@ fn list_processes() {
     let processes = Process::iter_ntdll().expect("could not list processes");
 
     for entry in processes.iter(true) {
+        winapi2::println!();
         winapi2::print!(
-            "\n{:?} {} ({} thread{})",
+            "{:?} {} ({} thread{})",
             entry.process.id, entry.process.image_name.as_ref(),
             entry.threads.len(), if entry.threads.len() != 1 {"s"} else {""}
         );
