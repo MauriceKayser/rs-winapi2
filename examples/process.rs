@@ -49,7 +49,7 @@ fn list_processes() {
 
     let processes = Process::iter_ntdll().expect("could not list processes");
 
-    for entry in processes.iter(true) {
+    for entry in processes.iter() {
         winapi2::println!();
         winapi2::print!(
             "{:?} {} ({} thread{})",

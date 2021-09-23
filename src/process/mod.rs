@@ -1059,8 +1059,8 @@ pub struct RuntimeSnapshot {
 impl RuntimeSnapshot {
     /// Creates an iterator over the processes in the snapshot.
     #[cfg_attr(not(debug_assertions), inline(always))]
-    pub const fn iter(&self, include_threads: bool) -> RuntimeSnapshotIterator {
-        RuntimeSnapshotIterator { snapshot: &self, index: 0, include_threads, is_done: false }
+    pub const fn iter(&self) -> RuntimeSnapshotIterator {
+        RuntimeSnapshotIterator { snapshot: &self, index: 0, is_done: false }
     }
 }
 
@@ -1069,7 +1069,6 @@ pub struct RuntimeSnapshotIterator<'a> {
     snapshot: &'a RuntimeSnapshot,
     index: usize,
 
-    include_threads: bool,
     is_done: bool
 }
 
@@ -1080,33 +1079,36 @@ impl<'a> core::iter::Iterator for RuntimeSnapshotIterator<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         if self.is_done { return None; }
 
-        // Cast the buffer to an `InformationProcess` struct.
-        let process: &crate::system::info::Process = unsafe {
-            crate::conversion::cast(self.snapshot.buffer.as_ref(), self.index)?
-        };
+        unsafe {
+            // Cast the buffer to an `InformationProcess` struct.
+            let process = crate::conversion::cast::<crate::system::info::Process>(
+                self.snapshot.buffer.as_ref(), self.index
+            )?;
 
-        let mut threads = Vec::new();
-        let mut index = core::mem::size_of_val(process);
+            let thread_count = core::cmp::min(
+                process.thread_count as usize,
+                self.snapshot.buffer.len()
+                    .unchecked_sub(self.index)
+                    .unchecked_sub(core::mem::size_of::<crate::system::info::Process>())
+                    / core::mem::size_of::<crate::system::info::Thread>()
+            );
 
-        if self.include_threads {
-            for _ in 0..process.thread_count {
-                // Cast the buffer to an `InformationThread` struct.
-                let thread: &crate::system::info::Thread = unsafe {
-                    crate::conversion::cast(self.snapshot.buffer.as_ref(), self.index + index)?
-                };
+            let threads = core::slice::from_raw_parts(
+                (self.snapshot.buffer.as_ptr() as usize)
+                    .unchecked_add(self.index)
+                    .unchecked_add(core::mem::size_of::<crate::system::info::Process>())
+                    as *const crate::system::info::Thread,
+                thread_count
+            );
 
-                threads.push(thread);
-                index += core::mem::size_of_val(thread);
+            // Add the offset to the index, if the offset is `0` set the status to `done`.
+            match process.next_offset {
+                Some(next_offset) => self.index += next_offset.get() as usize,
+                None => self.is_done = true
             }
-        }
 
-        // Add the offset to the index, if the offset is `0` set the status to `done`.
-        match process.next_offset {
-            Some(next_offset) => self.index += next_offset.get() as usize,
-            None => self.is_done = true
+            Some(RuntimeInformation { process, threads })
         }
-
-        Some(RuntimeInformation { process, threads })
     }
 }
 
@@ -1116,9 +1118,8 @@ pub struct RuntimeInformation<'a> {
     /// Stores information about the process.
     pub process: &'a crate::system::info::Process<'a>,
 
-    /// Optionally stores information about the process's threads, if `include_threads` was
-    /// set to `true` when calling `RuntimeSnapshot::iter`.
-    pub threads: Vec<&'a crate::system::info::Thread>
+    /// Stores information about the process's threads.
+    pub threads: &'a [crate::system::info::Thread],
 }
 
 #[cfg(test)]
@@ -1225,7 +1226,7 @@ mod tests {
             let info_all = information_nt(&me_all).unwrap();
             let snapshot = iter_nt().unwrap();
 
-            let snap_me = snapshot.iter(true).filter(
+            let snap_me = snapshot.iter().filter(
                 |entry| entry.process.id == info_all.id
             ).collect::<Vec<_>>();
 
