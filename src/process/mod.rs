@@ -576,9 +576,7 @@ impl Module {
 impl core::ops::Drop for Module {
     #[cfg_attr(not(debug_assertions), inline(always))]
     fn drop(&mut self) {
-        let closed = unsafe { crate::dll::kernel32::FreeLibrary(
-            Self(core::num::NonZeroUsize::new_unchecked(self.address()))
-        ) };
+        let closed = unsafe { crate::dll::kernel32::FreeLibrary(Self(self.0)) };
         debug_assert!(closed.as_bool());
     }
 }
