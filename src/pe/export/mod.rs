@@ -94,7 +94,7 @@ impl<'a, 'b> core::iter::Iterator for Iterator<'a, 'b> {
             );
 
             // Is the offset not in bounds of the export directory?
-            if !(dir_offset..=dir_offset.unchecked_add(self.directory_size)).contains(&address_offset) {
+            if !(dir_offset..dir_offset.unchecked_add(self.directory_size)).contains(&address_offset) {
                 // Then it is a real export.
 
                 // Check if the offset is inside the PE file.
@@ -103,7 +103,6 @@ impl<'a, 'b> core::iter::Iterator for Iterator<'a, 'b> {
                         address_offset,
                         self.image.image_base.len() - address_offset as usize
                     );
-                    // let address = &*self.image.offset_to_ptr(address_offset);
 
                     return Some(Named {
                         data: Data::InModule(buffer), name, address_rva, ordinal: biased_ordinal

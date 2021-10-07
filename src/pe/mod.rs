@@ -184,8 +184,6 @@ impl<'a> PeFile<'a> {
             ).checked_sub(optional_header_size)? as u16);
         }
 
-
-
         Some(optional_header)
     }
 
