@@ -768,6 +768,11 @@ impl String {
         self.0.reserve_exact(additional)
     }
 
+    /// Forces the length of the string to `new_len`.
+    pub unsafe fn set_len(&mut self, new_len: usize) {
+        self.0.set_len(new_len)
+    }
+
     /// Shrinks the capacity of this `String` to match its length.
     #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn shrink_to_fit(&mut self) {
