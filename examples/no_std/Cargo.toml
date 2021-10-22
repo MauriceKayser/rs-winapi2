@@ -1,0 +1,17 @@
+[package]
+name = "no-std"
+version = "1.0.0"
+edition = "2021"
+
+[dependencies.winapi2]
+git = "https://github.com/MauriceKayser/rs-winapi2"
+rev = "0" # Choose the latest revision.
+features = ["builtins"]
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+debug = true
+lto = true
+panic = "abort"

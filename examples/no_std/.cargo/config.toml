@@ -1,0 +1,9 @@
+[target.'cfg(target_env = "msvc")']
+rustflags = [
+    "-C", "link-args=/SUBSYSTEM:console",
+    "--cfg", 'winapi="native"'
+]
+
+[unstable]
+build-std = ["core", "compiler_builtins", "alloc"]
+build-std-features = ["compiler-builtins-mem"]

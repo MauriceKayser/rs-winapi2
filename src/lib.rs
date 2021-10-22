@@ -80,9 +80,11 @@
 
 // Features:
 // - [asm](https://github.com/rust-lang/rust/issues/72016)
+// - [naked_fns](https://github.com/rust-lang/rust/issues/32408)
 // - [option_result_unwrap_unchecked](https://github.com/rust-lang/rust/issues/81383)
 // - [unchecked_math](https://github.com/rust-lang/rfcs/issues/2508)
 #![feature(asm, option_result_unwrap_unchecked, unchecked_math)]
+#![cfg_attr(feature = "builtins", feature(naked_functions))]
 #![no_std]
 
 // External crates.
@@ -91,6 +93,8 @@ extern crate alloc;
 
 // All modules.
 
+#[cfg(feature = "builtins")]
+           mod builtins;
 #[macro_use]
 pub        mod console;
 // TODO: Set to `pub(crate)` once array lengths support generic parameters (see [#43408](https://github.com/rust-lang/rust/issues/43408)).
