@@ -75,3 +75,14 @@ bit application on a 64 bit Windows system** ("WOW64") **will not work** and pot
 the application if no exception handlers are set up!
 
 This project assumes `target_pointer_width >= 32`.
+
+## Compiler builtins
+
+This crate optionally provides implementations for the symbols: `__chkstk`, `__fltused`,
+`__alldiv`, `__allrem`, `__aulldiv` and `__aullrem` (and others of the same kind), if the
+feature `builtins` is used:
+
+```toml
+[dependencies]
+winapi2 = { ..., features = ["builtins"] }
+```

@@ -3,6 +3,9 @@ static _fltused: i32 = 0;
 
 #[cfg(target_arch = "x86")]
 mod x86 {
+    // TODO: Remove all `_a*` functions once https://github.com/rust-lang/compiler-builtins/issues/403
+    //  is solved.
+
     #[naked]
     #[no_mangle]
     unsafe extern fn _alldiv(dividend: i64, divisor: i64) -> i64 {
