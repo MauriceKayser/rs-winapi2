@@ -180,14 +180,16 @@ macro_rules! eprint_wide {
 #[macro_export]
 macro_rules! println {
     () => ($crate::print!("\n"));
-    ($($arg:tt)*) => ($crate::print!("{}\n", alloc::format!($($arg)*)););
+    ($str:expr, $($args:tt)*) => ($crate::print!(concat!($str, "\n"), $($args)*););
+    ($str:expr) => ($crate::print!(concat!($str, "\n"));)
 }
 
 /// Prints to the standard error, with an appended new-line character.
 #[macro_export]
 macro_rules! eprintln {
     () => ($crate::eprint!("\n"));
-    ($($arg:tt)*) => ($crate::eprint!("{}\n", alloc::format!($($arg)*)););
+    ($str:expr, $($args:tt)*) => ($crate::eprint!(concat!($str, "\n"), $($args)*););
+    ($str:expr) => ($crate::eprint!(concat!($str, "\n"));)
 }
 
 /// Prints to the standard output, with an appended new-line character.
@@ -202,4 +204,15 @@ macro_rules! println_wide {
 macro_rules! eprintln_wide {
     () => ($crate::eprint!("\n"));
     ($wstr:expr) => ($crate::eprint_wide!($wstr); $crate::eprintln_wide!(););
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test() {
+        crate::println!("ConsoleTest");
+        crate::println!("ConsoleTest",);
+        crate::eprintln!("ConsoleTest");
+        crate::eprintln!("ConsoleTest",);
+    }
 }
