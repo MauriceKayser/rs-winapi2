@@ -91,7 +91,7 @@ pub struct EnvironmentBlock<'a> {
 }
 
 impl<'a> EnvironmentBlock<'a> {
-    /// Reads data from with the "current thread" segment selector.
+    /// Reads data from the "current thread" segment selector.
     #[cfg_attr(not(debug_assertions), inline(always))]
     unsafe fn read_current_ptr_mut(offset: usize) -> *mut u8 {
         let result;

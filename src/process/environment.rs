@@ -81,8 +81,14 @@ pub struct CommandLineSplit<'a> {
 impl<'a> CommandLineSplit<'a> {
     /// Returns an iterator over the arguments in the command line string.
     #[cfg_attr(not(debug_assertions), inline(always))]
-    pub fn iter(&'a self, exclude_zero_terminator: bool) -> CommandLineIterator<'a> {
+    pub const fn iter(&'a self, exclude_zero_terminator: bool) -> CommandLineIterator<'a> {
         CommandLineIterator { split: self, index: 0, exclude_zero_terminator }
+    }
+
+    /// Returns the amount of arguments in the command line string.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub const fn len(&self) -> usize {
+        self.buffer.len()
     }
 }
 
