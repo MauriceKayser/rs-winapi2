@@ -83,6 +83,22 @@ impl AnsiStr {
         self.0.len()
     }
 
+    /// Converts this string to its ASCII lower case equivalent in-place.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn make_ascii_lowercase(&mut self) {
+        for char in self.0.iter_mut() {
+            *char = char.to_ascii_lowercase()
+        }
+    }
+
+    /// Converts this string to its ASCII upper case equivalent in-place.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn make_ascii_uppercase(&mut self) {
+        for char in self.0.iter_mut() {
+            *char = char.to_ascii_uppercase()
+        }
+    }
+
     /// Returns a possibly zero-terminated string reference from a zero-terminated string pointer.
     /// If `max_length` is reached before a zero-terminator is found, the returned string will not
     /// contain a zero-terminator.
@@ -390,6 +406,44 @@ impl Str {
     #[cfg_attr(not(debug_assertions), inline(always))]
     pub const fn len(&self) -> usize {
         self.0.len()
+    }
+
+    /// Converts this string to its ASCII lower case equivalent in-place.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn make_ascii_lowercase(&mut self) {
+        for char in self.0.iter_mut() {
+            if *char <= u8::MAX as WideChar {
+                *char = (*char as u8).to_ascii_lowercase() as WideChar
+            }
+        }
+    }
+
+    /// Converts this string to its ASCII upper case equivalent in-place.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn make_ascii_uppercase(&mut self) {
+        for char in self.0.iter_mut() {
+            if *char <= u8::MAX as WideChar {
+                *char = (*char as u8).to_ascii_uppercase() as WideChar
+            }
+        }
+    }
+
+    /// Returns a copy of this string where each character is mapped to its ASCII lower case
+    /// equivalent.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn to_ascii_lowercase(&self) -> String {
+        let mut s = String::from(self);
+        s.make_ascii_lowercase();
+        s
+    }
+
+    /// Returns a copy of this string where each character is mapped to its ASCII upper case
+    /// equivalent.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn to_ascii_uppercase(&self) -> String {
+        let mut s = String::from(self);
+        s.make_ascii_uppercase();
+        s
     }
 
     /// Returns a possibly zero-terminated string reference from a zero-terminated string pointer.
@@ -1199,6 +1253,33 @@ pub type WideChar = u16;
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn casing() {
+        let mut s1: [u8; 8] = TryInto::try_into("01azAZ[]".as_bytes()).unwrap();
+        let s1 = Into::<&mut AnsiStr>::into(s1.as_mut());
+        assert_eq!(s1, "01azAZ[]");
+
+        s1.make_ascii_lowercase();
+        assert_eq!(s1, "01azaz[]");
+
+        s1.make_ascii_uppercase();
+        assert_eq!(s1, "01AZAZ[]");
+
+        let mut s2 = String::from("01azAZ[]äÄ");
+        let s3 = s2.to_ascii_lowercase();
+        let s4 = s2.to_ascii_uppercase();
+
+        assert_eq!(s2, "01azAZ[]äÄ");
+        assert_eq!(s3, "01azaz[]äÄ");
+        assert_eq!(s4, "01AZAZ[]äÄ");
+
+        s2.make_ascii_lowercase();
+        assert_eq!(s2, "01azaz[]äÄ");
+
+        s2.make_ascii_uppercase();
+        assert_eq!(s2, "01AZAZ[]äÄ");
+    }
 
     #[test]
     fn str_conversion() {
