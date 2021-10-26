@@ -178,9 +178,7 @@ impl ImplString<&Self> for AnsiStr {
 impl core::cmp::PartialEq<str> for AnsiStr {
     #[cfg_attr(not(debug_assertions), inline(always))]
     fn eq(&self, other: &str) -> bool {
-        if self.len() != other.len() { return false; }
-
-        self.starts_with(other)
+        self.len() == other.len() && self.starts_with(other)
     }
 }
 
@@ -188,6 +186,13 @@ impl core::cmp::PartialEq<&str> for AnsiStr {
     #[cfg_attr(not(debug_assertions), inline(always))]
     fn eq(&self, other: &&str) -> bool {
         self.eq(*other)
+    }
+}
+
+impl<'a> core::convert::From<&'a str> for &'a AnsiStr {
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    fn from(value: &'a str) -> Self {
+        From::from(value.as_bytes())
     }
 }
 
@@ -445,8 +450,6 @@ impl Str {
 
 impl ImplString<&str> for Str {
     fn ends_with(&self, sub: &str) -> bool {
-        if self.len() < sub.len() { return false; }
-
         let mut index = self.len();
         for c in sub.chars().rev() {
             let mut utf16 = [0; 2];
@@ -455,9 +458,11 @@ impl ImplString<&str> for Str {
             index -= utf16.len();
 
             match utf16.len() {
-                1 => if self.0[index] != utf16[0] { return false; },
+                1 => if self.0.get(index).cloned() != Some(utf16[0]) { return false; },
 
-                2 => if self.0[index] != utf16[0] || self.0[index + 1] != utf16[1] { return false; },
+                2 => if self.0.get(index).cloned() != Some(utf16[0]) ||
+                        self.0.get(index + 1).cloned() != Some(utf16[1])
+                     { return false; },
 
                 _ => return false
             }
@@ -467,17 +472,17 @@ impl ImplString<&str> for Str {
     }
 
     fn starts_with(&self, sub: &str) -> bool {
-        if self.len() < sub.len() { return false; }
-
         let mut index = 0;
         for c in sub.chars() {
             let mut utf16 = [0; 2];
             let utf16 = c.encode_utf16(&mut utf16);
 
             match utf16.len() {
-                1 => if self.0[index] != utf16[0] { return false; },
+                1 => if self.0.get(index).cloned() != Some(utf16[0]) { return false; },
 
-                2 => if self.0[index] != utf16[0] || self.0[index + 1] != utf16[1] { return false; },
+                2 => if self.0.get(index).cloned() != Some(utf16[0]) ||
+                        self.0.get(index + 1).cloned() != Some(utf16[1])
+                     { return false; },
 
                 _ => return false
             }
@@ -522,8 +527,6 @@ impl ImplString<&String> for Str {
 impl core::cmp::PartialEq<str> for Str {
     #[cfg_attr(not(debug_assertions), inline(always))]
     fn eq(&self, other: &str) -> bool {
-        if self.len() != other.len() { return false; }
-
         self.starts_with(other)
     }
 }
@@ -1392,7 +1395,10 @@ mod tests {
 
     #[test]
     fn impl_string() {
-        let s1 = String::from("Test 123\0");
+        let s0 = String::from("Ä");
+        assert_eq!(s0, "Ä");
+
+        let s1 = String::from("Täst ö123\0");
         let s2 = s1.as_ref();
         let s3 = core::convert::Into::<&AnsiStr>::into("Test 123\0".as_bytes());
 
@@ -1400,31 +1406,31 @@ mod tests {
         let a_123_null = core::convert::Into::<&AnsiStr>::into("123\0".as_bytes());
         let a_best = core::convert::Into::<&AnsiStr>::into("Best".as_bytes());
         let a_test = core::convert::Into::<&AnsiStr>::into("Test".as_bytes());
-        let w_123 = String::from("123");
-        let w_123_null = String::from("123\0");
-        let w_best = String::from("Best");
-        let w_test = String::from("Test");
+        let w_123 = String::from("ö123");
+        let w_123_null = String::from("ö123\0");
+        let w_best = String::from("Bäst");
+        let w_test = String::from("Täst");
 
-        assert!(s1.ends_with("123\0"));
+        assert!(s1.ends_with("ö123\0"));
         assert!(s1.ends_with(w_123_null.as_ref()));
-        assert!(!s1.ends_with("123"));
+        assert!(!s1.ends_with("ö123"));
         assert!(!s1.ends_with(w_123.as_ref()));
-        assert!(s2.ends_with("123\0"));
+        assert!(s2.ends_with("ö123\0"));
         assert!(s2.ends_with(w_123_null.as_ref()));
-        assert!(!s2.ends_with("123"));
+        assert!(!s2.ends_with("ö123"));
         assert!(!s2.ends_with(w_123.as_ref()));
         assert!(s3.ends_with("123\0"));
         assert!(s3.ends_with(a_123_null));
         assert!(!s3.ends_with("123"));
         assert!(!s3.ends_with(a_123));
 
-        assert!(s1.starts_with("Test"));
+        assert!(s1.starts_with("Täst"));
         assert!(s1.starts_with(w_test.as_ref()));
-        assert!(!s1.starts_with("Best"));
+        assert!(!s1.starts_with("Bäst"));
         assert!(!s1.starts_with(w_best.as_ref()));
-        assert!(s2.starts_with("Test"));
+        assert!(s2.starts_with("Täst"));
         assert!(s2.starts_with(w_test.as_ref()));
-        assert!(!s2.starts_with("Best"));
+        assert!(!s2.starts_with("Bäst"));
         assert!(!s2.starts_with(w_best.as_ref()));
         assert!(s3.starts_with("Test"));
         assert!(s3.starts_with(a_test));
