@@ -124,6 +124,12 @@ impl Handle {
         Self(Id::from(id))
     }
 
+    /// Returns a boolean whether the given handle value is `-1`.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub(crate) const fn is_invalid(&self) -> bool {
+        self.0.0.get() == -1isize as usize
+    }
+
     /// Returns a boolean whether the given handle value is a pseudo handle (lower than `0`).
     #[cfg_attr(not(debug_assertions), inline(always))]
     pub(crate) const fn is_pseudo(&self) -> bool {
@@ -209,9 +215,25 @@ mod tests {
     use super::*;
 
     #[test]
+    fn handle_is_invalid() {
+        assert!(Handle::from(unsafe {
+            core::num::NonZeroUsize::new_unchecked(-1isize as usize)
+        }).is_invalid());
+        assert!(!Handle::from(unsafe {
+            core::num::NonZeroUsize::new_unchecked(-2isize as usize)
+        }).is_invalid());
+        assert!(!Handle::from(unsafe {
+            core::num::NonZeroUsize::new_unchecked(1)
+        }).is_invalid());
+    }
+
+    #[test]
     fn handle_is_pseudo() {
         assert!(Handle::from(unsafe {
             core::num::NonZeroUsize::new_unchecked(-1isize as usize)
+        }).is_pseudo());
+        assert!(Handle::from(unsafe {
+            core::num::NonZeroUsize::new_unchecked(-2isize as usize)
         }).is_pseudo());
         assert!(!Handle::from(unsafe {
             core::num::NonZeroUsize::new_unchecked(1)

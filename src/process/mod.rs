@@ -930,7 +930,7 @@ impl Process {
         ) };
         match handle {
             Some(handle) => Ok(Self(handle)),
-            None => Err(crate::error::Status::last().unwrap())
+            None => Err(unsafe { crate::error::Status::last().unwrap_unchecked() })
         }
     }
 

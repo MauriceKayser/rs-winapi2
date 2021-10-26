@@ -62,7 +62,7 @@ extern "system" {
     /// Official documentation: [kernel32.GetStdHandle](https://docs.microsoft.com/en-us/windows/console/getstdhandle).
     pub(crate) fn GetStdHandle(
         standard_device: crate::console::StandardDevice
-    ) -> crate::object::Handle;
+    ) -> Option<crate::object::Handle>;
 
     /// Official documentation: [kernel32.HeapAlloc](https://docs.microsoft.com/en-us/windows/win32/api/heapapi/nf-heapapi-heapalloc).
     pub(crate) fn HeapAlloc(

@@ -1036,10 +1036,10 @@ impl Object {
         ) };
 
         let last = crate::error::Status::last();
-        if !handle.is_pseudo() {
+        if !handle.is_invalid() {
             Ok((handle, last))
         } else {
-            Err(last.unwrap())
+            Err(unsafe { last.unwrap_unchecked() })
         }
     }
 

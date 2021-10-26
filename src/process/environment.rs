@@ -42,7 +42,7 @@ impl CommandLine {
                 self.buffer, count.as_mut_ptr()
             );
             if arguments as usize == 0 || count.assume_init() < 0 {
-                return Err(crate::error::Status::last().unwrap());
+                return Err(crate::error::Status::last().unwrap_unchecked());
             }
 
             Ok(CommandLineSplit { buffer: core::slice::from_raw_parts(

@@ -25,6 +25,6 @@ impl Boolean {
     /// Collects the last `Status` value if this boolean is `false`.
     #[cfg_attr(not(debug_assertions), inline(always))]
     pub(crate) fn to_status_result(self) -> crate::error::StatusResult {
-        (!self.as_bool()).then(|| crate::error::Status::last().unwrap())
+        (!self.as_bool()).then(|| ()).and_then(|_| crate::error::Status::last())
     }
 }

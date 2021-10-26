@@ -62,40 +62,40 @@ impl Console {
         -> crate::error::StatusResult
     {
         unsafe {
-            let output = crate::dll::kernel32::GetStdHandle(standard_device);
+            if let Some(output) = crate::dll::kernel32::GetStdHandle(standard_device) {
+                if !output.is_invalid() {
+                    let mut _mode = core::mem::MaybeUninit::uninit();
+                    let mut written_size = core::mem::MaybeUninit::uninit();
 
-            if !output.is_pseudo() {
-                let mut _mode = core::mem::MaybeUninit::uninit();
-                let mut written_size = core::mem::MaybeUninit::uninit();
+                    if crate::dll::kernel32::GetConsoleMode(
+                        output.clone(), _mode.as_mut_ptr()
+                    ).as_bool() {
+                        let converted = crate::string::String::from(text);
 
-                if crate::dll::kernel32::GetConsoleMode(
-                    output.clone(), _mode.as_mut_ptr()
-                ).as_bool() {
-                    let converted = crate::string::String::from(text);
-
-                    if crate::dll::kernel32::WriteConsoleW(
-                        output,
-                        converted.as_ptr(),
-                        core::cmp::min(converted.len(), u32::MAX as usize) as u32,
-                        written_size.as_mut_ptr(),
-                        0 as *const _
-                    ).as_bool() && written_size.assume_init() as usize == converted.len() {
-                        return None;
-                    }
-                } else {
-                    if crate::dll::kernel32::WriteFile(
-                        output,
-                        text.as_ptr(),
-                        core::cmp::min(text.len(), u32::MAX as usize) as u32,
-                        written_size.as_mut_ptr(),
-                        None
-                    ).as_bool() && written_size.assume_init() as usize == text.len() {
-                        return None;
+                        if crate::dll::kernel32::WriteConsoleW(
+                            output,
+                            converted.as_ptr(),
+                            core::cmp::min(converted.len(), u32::MAX as usize) as u32,
+                            written_size.as_mut_ptr(),
+                            0 as *const _
+                        ).as_bool() && written_size.assume_init() as usize == converted.len() {
+                            return None;
+                        }
+                    } else {
+                        if crate::dll::kernel32::WriteFile(
+                            output,
+                            text.as_ptr(),
+                            core::cmp::min(text.len(), u32::MAX as usize) as u32,
+                            written_size.as_mut_ptr(),
+                            None
+                        ).as_bool() && written_size.assume_init() as usize == text.len() {
+                            return None;
+                        }
                     }
                 }
-            }
+            } else { return None; }
 
-            Some(crate::error::Status::last().unwrap())
+            Some(crate::error::Status::last().unwrap_unchecked())
         }
     }
 
@@ -105,40 +105,40 @@ impl Console {
         -> crate::error::StatusResult
     {
         unsafe {
-            let output = crate::dll::kernel32::GetStdHandle(standard_device);
+            if let Some(output) = crate::dll::kernel32::GetStdHandle(standard_device) {
+                if !output.is_invalid() {
+                    let mut _mode = core::mem::MaybeUninit::uninit();
+                    let mut written_size = core::mem::MaybeUninit::uninit();
 
-            if !output.is_pseudo() {
-                let mut _mode = core::mem::MaybeUninit::uninit();
-                let mut written_size = core::mem::MaybeUninit::uninit();
+                    if crate::dll::kernel32::GetConsoleMode(
+                        output.clone(), _mode.as_mut_ptr()
+                    ).as_bool() {
+                        if crate::dll::kernel32::WriteConsoleW(
+                            output,
+                            text.as_ptr(),
+                            core::cmp::min(text.len(), u32::MAX as usize) as u32,
+                            written_size.as_mut_ptr(),
+                            0 as *const _
+                        ).as_bool() && written_size.assume_init() as usize == text.len() {
+                            return None;
+                        }
+                    } else {
+                        let converted = text.into_lossy();
 
-                if crate::dll::kernel32::GetConsoleMode(
-                    output.clone(), _mode.as_mut_ptr()
-                ).as_bool() {
-                    if crate::dll::kernel32::WriteConsoleW(
-                        output,
-                        text.as_ptr(),
-                        core::cmp::min(text.len(), u32::MAX as usize) as u32,
-                        written_size.as_mut_ptr(),
-                        0 as *const _
-                    ).as_bool() && written_size.assume_init() as usize == text.len() {
-                        return None;
-                    }
-                } else {
-                    let converted = text.into_lossy();
-
-                    if crate::dll::kernel32::WriteFile(
-                        output,
-                        converted.as_ptr(),
-                        core::cmp::min(converted.len(), u32::MAX as usize) as u32,
-                        written_size.as_mut_ptr(),
-                        None
-                    ).as_bool() && written_size.assume_init() as usize == converted.len() {
-                        return None;
+                        if crate::dll::kernel32::WriteFile(
+                            output,
+                            converted.as_ptr(),
+                            core::cmp::min(converted.len(), u32::MAX as usize) as u32,
+                            written_size.as_mut_ptr(),
+                            None
+                        ).as_bool() && written_size.assume_init() as usize == converted.len() {
+                            return None;
+                        }
                     }
                 }
-            }
+            } else { return None; }
 
-            Some(crate::error::Status::last().unwrap())
+            Some(crate::error::Status::last().unwrap_unchecked())
         }
     }
 }
