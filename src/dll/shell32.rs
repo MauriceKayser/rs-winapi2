@@ -6,5 +6,5 @@ extern "system" {
     pub(crate) fn CommandLineToArgvW(
         command_line: *const crate::string::WideChar,
         arguments: *mut i32
-    ) -> *const *const crate::string::WideChar;
+    ) -> *const *mut crate::string::WideChar;
 }

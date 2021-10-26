@@ -60,14 +60,14 @@ pub struct CommandLineIterator<'a> {
 }
 
 impl<'a> core::iter::Iterator for CommandLineIterator<'a> {
-    type Item = &'a crate::string::Str;
+    type Item = &'a mut crate::string::Str;
 
     #[cfg_attr(not(debug_assertions), inline(always))]
     fn next(&mut self) -> Option<Self::Item> {
         let parameter_ptr = self.split.buffer.get(self.index)?.clone();
         self.index += 1;
 
-        Some(unsafe { crate::string::Str::from_terminated(
+        Some(unsafe { crate::string::Str::from_terminated_mut(
             parameter_ptr, None, self.exclude_zero_terminator
         ) })
     }
@@ -75,7 +75,7 @@ impl<'a> core::iter::Iterator for CommandLineIterator<'a> {
 
 /// Stores the split command line buffers.
 pub struct CommandLineSplit<'a> {
-    buffer: &'a [*const WideChar]
+    buffer: &'a [*mut WideChar]
 }
 
 impl<'a> CommandLineSplit<'a> {
@@ -121,7 +121,7 @@ mod tests {
     fn command_line_iterator() {
         // An empty input string results in the full program path.
         let command_line = CommandLine { buffer: [0].as_ptr() }.split().unwrap();
-        let arguments: Vec<&crate::string::Str> = command_line.iter(true).collect();
+        let arguments: Vec<&mut crate::string::Str> = command_line.iter(true).collect();
 
         assert_eq!(arguments.len(), 1);
         let argument = ToString::to_string(arguments.first().unwrap());
@@ -175,13 +175,26 @@ mod tests {
                 .map(|s| s.as_ref()).collect();
 
             let command_line = CommandLine { buffer: input_terminated.as_ptr() }.split().unwrap();
-            let arguments: Vec<&crate::string::Str> =
+            let arguments: Vec<&mut crate::string::Str> =
                 command_line.iter(true).collect();
-            let arguments_terminated: Vec<&crate::string::Str> =
+            let arguments_terminated: Vec<&mut crate::string::Str> =
                 command_line.iter(false).collect();
 
             assert_eq!(&arguments.as_slice(), expected);
             assert_eq!(arguments_terminated, expected_terminated);
         }
+    }
+
+    #[test]
+    fn command_line_iterator_mut() {
+        let input = crate::string::String::from("A0Ä\0");
+        let command_line = CommandLine { buffer: input.as_ptr() }.split().unwrap();
+        let mut command_line = command_line.iter(true);
+
+        let arg1 = command_line.next().unwrap();
+        assert_eq!(arg1, "A0Ä");
+
+        arg1.make_ascii_lowercase();
+        assert_eq!(arg1, "a0Ä");
     }
 }
