@@ -99,6 +99,23 @@ impl AnsiStr {
         }
     }
 
+    /// Returns the same string without the zero-terminator, if it has one.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn non_zero(&self) -> &Self {
+        if self.0.last().cloned() == Some(0) {
+            &self[..self.len() - 1]
+        } else { self }
+    }
+
+    /// Returns the same string without the zero-terminator, if it has one.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn non_zero_mut(&mut self) -> &mut Self {
+        if self.0.last().cloned() == Some(0) {
+            let len = self.len();
+            &mut self[..len - 1]
+        } else { self }
+    }
+
     /// Returns a possibly zero-terminated string reference from a zero-terminated string pointer.
     /// If `max_length` is reached before a zero-terminator is found, the returned string will not
     /// contain a zero-terminator.
@@ -444,6 +461,23 @@ impl Str {
         let mut s = String::from(self);
         s.make_ascii_uppercase();
         s
+    }
+
+    /// Returns the same string without the zero-terminator, if it has one.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn non_zero(&self) -> &Self {
+        if self.0.last().cloned() == Some(0) {
+            &self[..self.len() - 1]
+        } else { self }
+    }
+
+    /// Returns the same string without the zero-terminator, if it has one.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn non_zero_mut(&mut self) -> &mut Self {
+        if self.0.last().cloned() == Some(0) {
+            let len = self.len();
+            &mut self[..len - 1]
+        } else { self }
     }
 
     /// Returns a possibly zero-terminated string reference from a zero-terminated string pointer.
@@ -1529,6 +1563,36 @@ mod tests {
 
         s.push_utf8("ef");
         assert_eq!(s, "abcdef");
+    }
+
+    #[test]
+    fn non_zero() {
+        let s1 = core::convert::Into::<&AnsiStr>::into("Test".as_bytes());
+        let s2 = core::convert::Into::<&AnsiStr>::into("Test\0".as_bytes());
+
+        let mut s3: [u8; 4] = TryInto::try_into("Test".as_bytes()).unwrap();
+        let s3 = Into::<&mut AnsiStr>::into(s3.as_mut());
+        let mut s4: [u8; 5] = TryInto::try_into("Test\0".as_bytes()).unwrap();
+        let s4 = Into::<&mut AnsiStr>::into(s4.as_mut());
+
+        assert_eq!(s1.non_zero(), "Test");
+        assert_eq!(s2.non_zero(), "Test");
+        assert_eq!(s3.non_zero(), "Test");
+        assert_eq!(s3.non_zero_mut(), "Test");
+        assert_eq!(s4.non_zero(), "Test");
+        assert_eq!(s4.non_zero_mut(), "Test");
+
+        let s1 = String::from("Test");
+        let s2 = String::from("Test\0");
+        let mut s3 = String::from("Test");
+        let mut s4 = String::from("Test\0");
+
+        assert_eq!(s1.non_zero(), "Test");
+        assert_eq!(s2.non_zero(), "Test");
+        assert_eq!(s3.non_zero(), "Test");
+        assert_eq!(s3.non_zero_mut(), "Test");
+        assert_eq!(s4.non_zero(), "Test");
+        assert_eq!(s4.non_zero_mut(), "Test");
     }
 
     #[test]
